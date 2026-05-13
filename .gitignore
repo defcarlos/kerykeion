@@ -80,3 +80,6 @@ sync-docs.sh
 .env
 .opencode/plans
 /task/
+natal_chart_script.py
+report_diff.txt
+report_diff_direct.txt
