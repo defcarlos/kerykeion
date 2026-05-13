@@ -58,6 +58,36 @@ NAKSHATRA_LORDS: Tuple[NakshatraLord, ...] = (
     "Mercury",
 )
 
+NAKSHATRA_DEITIES: Tuple[str, ...] = (
+    "Aswini Kumara",
+    "Yama",
+    "Agni",
+    "Bramha",
+    "Moon",
+    "Shiva",
+    "Aditi",
+    "Jupiter",
+    "Rahu",
+    "Sun",
+    "Aryaman",
+    "Sun",
+    "Viswakarma",
+    "Vaayu",
+    "Indra",
+    "Mitra",
+    "Indra",
+    "Nirriti",
+    "Varuna",
+    "Viswadeva",
+    "Brahma",
+    "Vishnu",
+    "Vasu",
+    "Varuna",
+    "Ajacharana",
+    "Ahirbudhanya",
+    "Pooshan",
+)
+
 
 def get_nakshatra_data(abs_pos: float, ayanamsa: float = 0.0) -> Dict[str, Any]:
     """
@@ -74,6 +104,7 @@ def get_nakshatra_data(abs_pos: float, ayanamsa: float = 0.0) -> Dict[str, Any]:
             - nakshatra_number: Numerical identifier (1-27).
             - nakshatra_pada: Pada number (1-4).
             - nakshatra_lord: Name of the Vimsottari Dasha lord.
+            - nakshatra_deity: Ruling deity of the Nakshatra.
     """
     # Convert to sidereal position
     sidereal_pos = (abs_pos - ayanamsa) % 360.0
@@ -102,4 +133,5 @@ def get_nakshatra_data(abs_pos: float, ayanamsa: float = 0.0) -> Dict[str, Any]:
         "nakshatra_number": nakshatra_index + 1,
         "nakshatra_pada": pada_index + 1,
         "nakshatra_lord": NAKSHATRA_LORDS[lord_index],
+        "nakshatra_deity": NAKSHATRA_DEITIES[nakshatra_index],
     }

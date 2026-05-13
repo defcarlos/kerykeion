@@ -406,6 +406,9 @@ class KerykeionPointModel(SubscriptableBaseModel):
     nakshatra_lord: Optional[NakshatraLord] = Field(
         default=None, description="The Vimsottari Dasha lord of the Nakshatra."
     )
+    nakshatra_deity: Optional[str] = Field(
+        default=None, description="The ruling deity of the Nakshatra."
+    )
 
 
 class AstrologicalBaseModel(SubscriptableBaseModel):

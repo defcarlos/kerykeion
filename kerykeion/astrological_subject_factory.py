@@ -912,6 +912,7 @@ class AstrologicalSubjectFactory:
                         value.nakshatra_number = nak_data.get("nakshatra_number")
                         value.nakshatra_pada = nak_data.get("nakshatra_pada")
                         value.nakshatra_lord = nak_data.get("nakshatra_lord")
+                        value.nakshatra_deity = nak_data.get("nakshatra_deity")
 
         AstrologicalSubjectFactory._calculate_day_of_week(calc_data)
 
