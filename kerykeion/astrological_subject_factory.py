@@ -934,19 +934,48 @@ class AstrologicalSubjectFactory:
         else:
             calc_data["lunar_phase"] = None
 
-        # Calculate Panchang (optional - only if Sun and Moon are available)
+                # Calculate Panchang (optional - only if Sun and Moon are available)
         if "sun" in calc_data and "moon" in calc_data:
             try:
                 sun_pos = calc_data["sun"].abs_pos  # type: ignore[attr-defined,union-attr]
                 moon_pos = calc_data["moon"].abs_pos  # type: ignore[attr-defined,union-attr]
+                jd = calc_data.get("julian_day")
                 
-                tithi_data = get_tithi_data(moon_pos, sun_pos)
-                yoga_data = get_yoga_data(moon_pos, sun_pos)
-                karana_data = get_karana_data(moon_pos, sun_pos)
+                tithi_data = get_tithi_data(moon_pos, sun_pos, jd)
+                yoga_data = get_yoga_data(moon_pos, sun_pos, jd)
+                karana_data = get_karana_data(moon_pos, sun_pos, jd)
                 
                 # Nakshatra for Panchang is specifically the Moon's Nakshatra
                 moon_point: KerykeionPointModel = calc_data["moon"] # type: ignore
                 
+                nak_start = None
+                nak_end = None
+                if jd:
+                    from kerykeion.panchang_utils import get_nakshatra_boundary, get_sunrise_sunset, _jd_to_iso
+                    nak_start = _jd_to_iso(get_nakshatra_boundary(jd, -1))
+                    nak_end = _jd_to_iso(get_nakshatra_boundary(jd, 1))
+                    
+                    # Vara transition (Sunrise to Sunrise)
+                    lat = calc_data.get("lat", 0.0)
+                    lng = calc_data.get("lng", 0.0)
+                    sr_today, _ = get_sunrise_sunset(jd, lat, lng)
+                    
+                    # If current JD is before today's sunrise, the Vedic day started yesterday
+                    if jd < sr_today:
+                        vara_start = sr_today - 1.0 # Approximate for search
+                        sr_start, _ = get_sunrise_sunset(sr_today - 0.5, lat, lng)
+                        sr_end = sr_today
+                    else:
+                        sr_start = sr_today
+                        sr_next, _ = get_sunrise_sunset(sr_today + 1.5, lat, lng)
+                        sr_end = sr_next
+                        
+                    vara_start_iso = _jd_to_iso(sr_start)
+                    vara_end_iso = _jd_to_iso(sr_end)
+                else:
+                    vara_start_iso = None
+                    vara_end_iso = None
+
                 calc_data["panchang"] = PanchangModel(
                     tithi=TithiModel(**tithi_data),
                     yoga=YogaModel(**yoga_data),
@@ -956,7 +985,11 @@ class AstrologicalSubjectFactory:
                     nakshatra_pada=moon_point.nakshatra_pada,
                     nakshatra_lord=moon_point.nakshatra_lord,
                     nakshatra_deity=moon_point.nakshatra_deity,
-                    vara=calc_data.get("day_of_week", "Unknown")
+                    nakshatra_start_time=nak_start,
+                    nakshatra_end_time=nak_end,
+                    vara=calc_data.get("day_of_week", "Unknown"),
+                    vara_start_time=vara_start_iso,
+                    vara_end_time=vara_end_iso
                 )
             except Exception as e:
                 logging.warning(f"Could not calculate Panchang: {e}")

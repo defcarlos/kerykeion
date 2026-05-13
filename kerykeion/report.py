@@ -383,13 +383,58 @@ class ReportGenerator:
         if not panchang:
             return ""
 
+        def format_iso(iso_str: Optional[str]) -> str:
+            if not iso_str:
+                return "-"
+            try:
+                # Format to HH:MM (Local)
+                dt = datetime.fromisoformat(iso_str)
+                # Attempt to convert to local if tz_str is available
+                tz_str = getattr(subject, "tz_str", None)
+                if tz_str:
+                    import pytz
+                    dt = dt.astimezone(pytz.timezone(tz_str))
+                return dt.strftime("%H:%M")
+            except Exception:
+                return iso_str[:16].replace("T", " ")
+
         panchang_data = [
-            ["Limb", "Value", "Deity"],
-            ["Tithi", f"{panchang.tithi.name} ({panchang.tithi.paksha})", panchang.tithi.deity],
-            ["Nakshatra", f"{panchang.nakshatra} (Pada {panchang.nakshatra_pada})", panchang.nakshatra_deity or "-"],
-            ["Yoga", panchang.yoga.name, panchang.yoga.deity],
-            ["Karana", panchang.karana.name, panchang.karana.deity],
-            ["Vara", panchang.vara, "-"],
+            ["Limb", "Value", "Deity", "Start", "End"],
+            [
+                "Tithi", 
+                f"{panchang.tithi.name} ({panchang.tithi.paksha})", 
+                panchang.tithi.deity,
+                format_iso(panchang.tithi.start_time),
+                format_iso(panchang.tithi.end_time)
+            ],
+            [
+                "Nakshatra", 
+                f"{panchang.nakshatra} ({panchang.nakshatra_pada})", 
+                panchang.nakshatra_deity or "-",
+                format_iso(panchang.nakshatra_start_time),
+                format_iso(panchang.nakshatra_end_time)
+            ],
+            [
+                "Yoga", 
+                panchang.yoga.name, 
+                panchang.yoga.deity,
+                format_iso(panchang.yoga.start_time),
+                format_iso(panchang.yoga.end_time)
+            ],
+            [
+                "Karana", 
+                panchang.karana.name, 
+                panchang.karana.deity,
+                format_iso(panchang.karana.start_time),
+                format_iso(panchang.karana.end_time)
+            ],
+            [
+                "Vara", 
+                panchang.vara, 
+                "-",
+                format_iso(panchang.vara_start_time),
+                format_iso(panchang.vara_end_time)
+            ],
         ]
         return AsciiTable(panchang_data, title="Panchang (Five Limbs of Time)").table
 

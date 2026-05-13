@@ -424,6 +424,8 @@ class TithiModel(SubscriptableBaseModel):
     name: Tithi = Field(description="Name of the Tithi.")
     paksha: Paksha = Field(description="The Paksha (Shukla or Krishna).")
     deity: str = Field(description="The ruling deity of the Tithi.")
+    start_time: Optional[str] = Field(default=None, description="Start time of the Tithi (ISO).")
+    end_time: Optional[str] = Field(default=None, description="End time of the Tithi (ISO).")
     description: Optional[str] = Field(default=None, description="A brief description of the Tithi.")
 
 
@@ -435,6 +437,8 @@ class YogaModel(SubscriptableBaseModel):
     number: int = Field(description="Numerical identifier of the Yoga (1-27).")
     name: Yoga = Field(description="Name of the Yoga.")
     deity: str = Field(description="The ruling deity of the Yoga.")
+    start_time: Optional[str] = Field(default=None, description="Start time of the Yoga (ISO).")
+    end_time: Optional[str] = Field(default=None, description="End time of the Yoga (ISO).")
 
 
 class KaranaModel(SubscriptableBaseModel):
@@ -445,6 +449,8 @@ class KaranaModel(SubscriptableBaseModel):
     number: int = Field(description="Numerical identifier of the Karana (1-11).")
     name: Karana = Field(description="Name of the Karana.")
     deity: str = Field(description="The ruling deity of the Karana.")
+    start_time: Optional[str] = Field(default=None, description="Start time of the Karana (ISO).")
+    end_time: Optional[str] = Field(default=None, description="End time of the Karana (ISO).")
 
 
 class PanchangModel(SubscriptableBaseModel):
@@ -458,9 +464,13 @@ class PanchangModel(SubscriptableBaseModel):
     nakshatra_pada: Optional[int] = Field(default=None, description="The Pada of the Moon's Nakshatra.")
     nakshatra_lord: Optional[NakshatraLord] = Field(default=None, description="The lord of the Moon's Nakshatra.")
     nakshatra_deity: Optional[str] = Field(default=None, description="The deity of the Moon's Nakshatra.")
+    nakshatra_start_time: Optional[str] = Field(default=None, description="Start time of the Moon's Nakshatra (ISO).")
+    nakshatra_end_time: Optional[str] = Field(default=None, description="End time of the Moon's Nakshatra (ISO).")
     yoga: YogaModel = Field(description="The Nitya Yoga.")
     karana: KaranaModel = Field(description="The Karana.")
     vara: str = Field(description="The Weekday (Vara).")
+    vara_start_time: Optional[str] = Field(default=None, description="Start time of the Vara (Vedic Sunrise) (ISO).")
+    vara_end_time: Optional[str] = Field(default=None, description="End time of the Vara (Next Vedic Sunrise) (ISO).")
 
 
 class AstrologicalBaseModel(SubscriptableBaseModel):
