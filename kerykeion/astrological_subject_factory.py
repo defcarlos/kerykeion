@@ -54,8 +54,17 @@ from kerykeion.schemas import (
     PerspectiveType,
     AstrologicalPoint,
     Houses,
+    PanchangModel,
+    TithiModel,
+    YogaModel,
+    KaranaModel,
 )
 from kerykeion.nakshatra_utils import get_nakshatra_data
+from kerykeion.panchang_utils import (
+    get_tithi_data,
+    get_yoga_data,
+    get_karana_data,
+)
 from kerykeion.utilities import (
     get_kerykeion_point_from_degree,
     get_planet_house,
@@ -924,6 +933,36 @@ class AstrologicalSubjectFactory:
             )
         else:
             calc_data["lunar_phase"] = None
+
+        # Calculate Panchang (optional - only if Sun and Moon are available)
+        if "sun" in calc_data and "moon" in calc_data:
+            try:
+                sun_pos = calc_data["sun"].abs_pos  # type: ignore[attr-defined,union-attr]
+                moon_pos = calc_data["moon"].abs_pos  # type: ignore[attr-defined,union-attr]
+                
+                tithi_data = get_tithi_data(moon_pos, sun_pos)
+                yoga_data = get_yoga_data(moon_pos, sun_pos)
+                karana_data = get_karana_data(moon_pos, sun_pos)
+                
+                # Nakshatra for Panchang is specifically the Moon's Nakshatra
+                moon_point: KerykeionPointModel = calc_data["moon"] # type: ignore
+                
+                calc_data["panchang"] = PanchangModel(
+                    tithi=TithiModel(**tithi_data),
+                    yoga=YogaModel(**yoga_data),
+                    karana=KaranaModel(**karana_data),
+                    nakshatra=moon_point.nakshatra,
+                    nakshatra_number=moon_point.nakshatra_number,
+                    nakshatra_pada=moon_point.nakshatra_pada,
+                    nakshatra_lord=moon_point.nakshatra_lord,
+                    nakshatra_deity=moon_point.nakshatra_deity,
+                    vara=calc_data.get("day_of_week", "Unknown")
+                )
+            except Exception as e:
+                logging.warning(f"Could not calculate Panchang: {e}")
+                calc_data["panchang"] = None
+        else:
+            calc_data["panchang"] = None
 
         # Create and return the AstrologicalSubjectModel
         return AstrologicalSubjectModel(**calc_data)

@@ -431,6 +431,79 @@ NakshatraLord: TypeAlias = Literal[
 """Literal type for the 9 Vimsottari Dasha lords of the Nakshatras"""
 
 
+Paksha: TypeAlias = Literal["Shukla", "Krishna"]
+"""Literal type for Pakshas (Waxing/Waning phases)"""
+
+
+Tithi: TypeAlias = Literal[
+    "Pratipada",
+    "Dwitiya",
+    "Tritiya",
+    "Chaturthi",
+    "Panchami",
+    "Shashti",
+    "Saptami",
+    "Ashtami",
+    "Navami",
+    "Dashami",
+    "Ekadashi",
+    "Dwadashi",
+    "Trayodashi",
+    "Chaturdashi",
+    "Purnima",
+    "Amavasya",
+]
+"""Literal type for Tithis (Lunar Days)"""
+
+
+Yoga: TypeAlias = Literal[
+    "Vishkumbha",
+    "Priti",
+    "Ayushman",
+    "Saubhagya",
+    "Sobhana",
+    "Atiganda",
+    "Sukarma",
+    "Dhriti",
+    "Shula",
+    "Ganda",
+    "Vriddhi",
+    "Dhruva",
+    "Vyaghata",
+    "Harshana",
+    "Vajra",
+    "Siddhi",
+    "Vyatipata",
+    "Variyan",
+    "Parigha",
+    "Shiva",
+    "Siddha",
+    "Sadhya",
+    "Shubha",
+    "Shukla",
+    "Brahma",
+    "Indra",
+    "Vaidhriti",
+]
+"""Literal type for the 27 Yogas"""
+
+
+Karana: TypeAlias = Literal[
+    "Bava",
+    "Balava",
+    "Kaulava",
+    "Taitila",
+    "Gara",
+    "Vanija",
+    "Vishti",
+    "Shakuni",
+    "Chatushpada",
+    "Naga",
+    "Kimstughna",
+]
+"""Literal type for the 11 Karanas"""
+
+
 # ---------------------------------------------------------------------------
 # Deprecated aliases for backward compatibility with Kerykeion v4.x
 # ---------------------------------------------------------------------------

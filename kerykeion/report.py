@@ -165,8 +165,10 @@ class ReportGenerator:
         sections = [
             self._subject_data_report(self._primary_subject, "Astrological Subject"),
             self._celestial_points_report(self._primary_subject, "Celestial Points"),
+            self._nakshatra_positions_report(self._primary_subject),
             self._houses_report(self._primary_subject, "Houses"),
             self._lunar_phase_report(self._primary_subject),
+            self._panchang_report(self._primary_subject),
         ]
         return sections
 
@@ -310,8 +312,10 @@ class ReportGenerator:
                 self._celestial_points_report(
                     self._primary_subject, f"{self._primary_subject_label()} Celestial Points"
                 ),
+                self._nakshatra_positions_report(self._primary_subject),
                 self._houses_report(self._primary_subject, f"{self._primary_subject_label()} Houses"),
                 self._lunar_phase_report(self._primary_subject),
+                self._panchang_report(self._primary_subject),
                 self._elements_report(),
                 self._qualities_report(),
                 self._active_configuration_report(),
@@ -338,6 +342,7 @@ class ReportGenerator:
         sections.extend(
             [
                 self._celestial_points_report(self._primary_subject, f"{primary_label} Celestial Points"),
+                self._nakshatra_positions_report(self._primary_subject),
             ]
         )
 
@@ -345,6 +350,7 @@ class ReportGenerator:
             sections.append(
                 self._celestial_points_report(self._secondary_subject, f"{secondary_label} Celestial Points")
             )
+            sections.append(self._nakshatra_positions_report(self._secondary_subject))
 
         sections.append(self._houses_report(self._primary_subject, f"{primary_label} Houses"))
 
@@ -354,6 +360,7 @@ class ReportGenerator:
         sections.extend(
             [
                 self._lunar_phase_report(self._primary_subject),
+                self._panchang_report(self._primary_subject),
                 self._elements_report(),
                 self._qualities_report(),
                 self._house_comparison_report(),
@@ -370,6 +377,45 @@ class ReportGenerator:
     # ------------------------------------------------------------------ #
     # Section helpers
     # ------------------------------------------------------------------ #
+
+    def _panchang_report(self, subject: SubjectLike) -> str:
+        panchang = getattr(subject, "panchang", None)
+        if not panchang:
+            return ""
+
+        panchang_data = [
+            ["Limb", "Value", "Deity"],
+            ["Tithi", f"{panchang.tithi.name} ({panchang.tithi.paksha})", panchang.tithi.deity],
+            ["Nakshatra", f"{panchang.nakshatra} (Pada {panchang.nakshatra_pada})", panchang.nakshatra_deity or "-"],
+            ["Yoga", panchang.yoga.name, panchang.yoga.deity],
+            ["Karana", panchang.karana.name, panchang.karana.deity],
+            ["Vara", panchang.vara, "-"],
+        ]
+        return AsciiTable(panchang_data, title="Panchang (Five Limbs of Time)").table
+
+    def _nakshatra_positions_report(self, subject: SubjectLike) -> str:
+        points = self._collect_celestial_points(subject)
+        if not points:
+            return ""
+
+        # Filter points that have Nakshatra info
+        points_with_nak = [p for p in points if p.nakshatra]
+        if not points_with_nak:
+            return ""
+
+        nak_data: List[List[str]] = [["Point", "Nakshatra", "Pada", "Lord", "Deity"]]
+        for p in points_with_nak:
+            nak_data.append(
+                [
+                    p.name.replace("_", " "),
+                    p.nakshatra,
+                    str(p.nakshatra_pada),
+                    p.nakshatra_lord or "-",
+                    p.nakshatra_deity or "-",
+                ]
+            )
+
+        return AsciiTable(nak_data, title="Nakshatra Positions").table
 
     def _build_title(self) -> str:
         if self._model_kind == "moon_phase_overview":

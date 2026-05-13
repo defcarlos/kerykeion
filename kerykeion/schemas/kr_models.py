@@ -51,6 +51,10 @@ from kerykeion.schemas.kr_literals import (
     AspectMovementType,
     Nakshatra,
     NakshatraLord,
+    Paksha,
+    Tithi,
+    Yoga,
+    Karana,
     ReturnType,
 )
 
@@ -411,6 +415,54 @@ class KerykeionPointModel(SubscriptableBaseModel):
     )
 
 
+class TithiModel(SubscriptableBaseModel):
+    """
+    Model representing a Tithi (Lunar Day).
+    """
+
+    number: int = Field(description="Numerical identifier of the Tithi (1-30).")
+    name: Tithi = Field(description="Name of the Tithi.")
+    paksha: Paksha = Field(description="The Paksha (Shukla or Krishna).")
+    deity: str = Field(description="The ruling deity of the Tithi.")
+    description: Optional[str] = Field(default=None, description="A brief description of the Tithi.")
+
+
+class YogaModel(SubscriptableBaseModel):
+    """
+    Model representing a Yoga (one of the 27 Nitya Yogas).
+    """
+
+    number: int = Field(description="Numerical identifier of the Yoga (1-27).")
+    name: Yoga = Field(description="Name of the Yoga.")
+    deity: str = Field(description="The ruling deity of the Yoga.")
+
+
+class KaranaModel(SubscriptableBaseModel):
+    """
+    Model representing a Karana (Half-Tithi).
+    """
+
+    number: int = Field(description="Numerical identifier of the Karana (1-11).")
+    name: Karana = Field(description="Name of the Karana.")
+    deity: str = Field(description="The ruling deity of the Karana.")
+
+
+class PanchangModel(SubscriptableBaseModel):
+    """
+    Model representing the Panchang (Five Limbs of Time).
+    """
+
+    tithi: TithiModel = Field(description="The Lunar Day (Tithi).")
+    nakshatra: Optional[Nakshatra] = Field(default=None, description="The Nakshatra of the Moon.")
+    nakshatra_number: Optional[int] = Field(default=None, description="Numerical identifier for the Moon's Nakshatra.")
+    nakshatra_pada: Optional[int] = Field(default=None, description="The Pada of the Moon's Nakshatra.")
+    nakshatra_lord: Optional[NakshatraLord] = Field(default=None, description="The lord of the Moon's Nakshatra.")
+    nakshatra_deity: Optional[str] = Field(default=None, description="The deity of the Moon's Nakshatra.")
+    yoga: YogaModel = Field(description="The Nitya Yoga.")
+    karana: KaranaModel = Field(description="The Karana.")
+    vara: str = Field(description="The Weekday (Vara).")
+
+
 class AstrologicalBaseModel(SubscriptableBaseModel):
     """
     Base model containing common fields for all astrological subjects.
@@ -592,6 +644,9 @@ class AstrologicalBaseModel(SubscriptableBaseModel):
 
     # Common lunar phase data (optional)
     lunar_phase: Optional[LunarPhaseModel] = Field(default=None, description="Lunar phase model")
+
+    # Panchang (Five Limbs of Time)
+    panchang: Optional[PanchangModel] = Field(default=None, description="Panchang (Five Limbs of Time) data.")
 
 
 class AstrologicalSubjectModel(AstrologicalBaseModel):
