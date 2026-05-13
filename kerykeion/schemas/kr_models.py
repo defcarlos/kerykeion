@@ -32,7 +32,7 @@ from typing_extensions import TypedDict
 from pydantic import BaseModel, Field
 from kerykeion.schemas.kr_literals import AspectName
 
-from kerykeion.schemas import (
+from kerykeion.schemas.kr_literals import (
     LunarPhaseEmoji,
     LunarPhaseName,
     AstrologicalPoint,
@@ -49,8 +49,10 @@ from kerykeion.schemas import (
     RelationshipScoreDescription,
     PerspectiveType,
     AspectMovementType,
+    Nakshatra,
+    NakshatraLord,
+    ReturnType,
 )
-from kerykeion.schemas.kr_literals import ReturnType
 
 
 class SubscriptableBaseModel(BaseModel):
@@ -398,6 +400,12 @@ class KerykeionPointModel(SubscriptableBaseModel):
     magnitude: Optional[float] = Field(
         default=None, description="Apparent visual magnitude (fixed stars only). Lower = brighter."
     )
+    nakshatra: Optional[Nakshatra] = Field(default=None, description="The Nakshatra (Lunar Mansion) the point is located in.")
+    nakshatra_number: Optional[int] = Field(default=None, description="Numerical identifier for the Nakshatra (1-27).")
+    nakshatra_pada: Optional[int] = Field(default=None, description="The Nakshatra Pada (quarter) the point is located in (1-4).")
+    nakshatra_lord: Optional[NakshatraLord] = Field(
+        default=None, description="The Vimsottari Dasha lord of the Nakshatra."
+    )
 
 
 class AstrologicalBaseModel(SubscriptableBaseModel):
@@ -429,6 +437,10 @@ class AstrologicalBaseModel(SubscriptableBaseModel):
             charts. This is the angular difference between tropical 0 Aries and
             sidereal 0 Aries at the chart's date/time, as determined by the
             selected sidereal mode. ``None`` for tropical charts. Added in v5.12.
+        nakshatra_ayanamsa: The sidereal mode used specifically for Nakshatra
+            calculations. This allows for a "hybrid" approach where the main
+            zodiac is Tropical but Nakshatras are calculated using a Sidereal
+            reference frame. Defaults to ``None``. Added in v5.13.
         active_points: List of celestial points included in calculations.
 
     Fixed Stars (v5.12 -- expanded from 2 to 23):
@@ -465,6 +477,10 @@ class AstrologicalBaseModel(SubscriptableBaseModel):
     ayanamsa_value: Optional[float] = Field(
         default=None,
         description="Ayanamsa offset in degrees for sidereal charts (tropical 0 Aries minus sidereal 0 Aries). None for tropical charts.",
+    )
+    nakshatra_ayanamsa: Optional[SiderealMode] = Field(
+        default=None,
+        description="Sidereal mode used for Nakshatra calculations.",
     )
 
     # Common celestial points

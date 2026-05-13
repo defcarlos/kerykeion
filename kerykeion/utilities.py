@@ -24,6 +24,7 @@ from kerykeion.schemas import (
     PlanetReturnModel,
     ZodiacType,
 )
+from kerykeion.nakshatra_utils import get_nakshatra_data
 from kerykeion.schemas.kr_literals import (
     LunarPhaseEmoji,
     LunarPhaseName,
@@ -203,6 +204,7 @@ def get_kerykeion_point_from_degree(
     speed: Optional[float] = None,
     declination: Optional[float] = None,
     magnitude: Optional[float] = None,
+    nakshatra_ayanamsa_value: Optional[float] = None,
 ) -> KerykeionPointModel:
     """
     Create a KerykeionPointModel from a degree position.
@@ -214,6 +216,7 @@ def get_kerykeion_point_from_degree(
         speed: The velocity/speed of the celestial point in degrees per day (optional)
         declination: The declination of the celestial point in degrees (optional)
         magnitude: The apparent visual magnitude for fixed stars (optional)
+        nakshatra_ayanamsa_value: The ayanamsa value to use for Nakshatra calculation (optional)
 
     Returns:
         A KerykeionPointModel with calculated zodiac sign, position, and properties
@@ -232,6 +235,10 @@ def get_kerykeion_point_from_degree(
     sign_degree = degree % 30
     zodiac_sign = _ZODIAC_SIGNS[sign_index]
 
+    nakshatra_data = {}
+    if nakshatra_ayanamsa_value is not None:
+        nakshatra_data = get_nakshatra_data(degree, nakshatra_ayanamsa_value)
+
     return KerykeionPointModel(
         name=name,
         quality=zodiac_sign.quality,
@@ -245,6 +252,7 @@ def get_kerykeion_point_from_degree(
         speed=speed,
         declination=declination,
         magnitude=magnitude,
+        **nakshatra_data,
     )
 
 
@@ -293,7 +301,7 @@ def get_planet_house(planet_degree: Union[int, float], houses_degree_ut_list: li
 
     Args:
         planet_degree: The planet's position in degrees (0-360)
-        houses_degree_ut_list: List of house cusp degrees
+        houses_degree_ut_list: List of house cusp degrees.
 
     Returns:
         The house name containing the planet

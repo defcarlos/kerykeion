@@ -310,6 +310,8 @@ class ChartConfiguration:
             ayanamsa. Only used when sidereal_mode is 'USER'. Defaults to None.
         custom_ayanamsa_ayan_t0 (Optional[float]): Ayanamsa value (degrees) at the
             reference epoch t0. Only used when sidereal_mode is 'USER'. Defaults to None.
+        nakshatra_ayanamsa (SiderealMode): The sidereal mode to use for Nakshatra
+            calculations. Defaults to 'LAHIRI'.
 
     Raises:
         KerykeionException: When invalid configuration combinations are detected,
@@ -331,6 +333,7 @@ class ChartConfiguration:
     perspective_type: PerspectiveType = DEFAULT_PERSPECTIVE_TYPE
     custom_ayanamsa_t0: Optional[float] = None
     custom_ayanamsa_ayan_t0: Optional[float] = None
+    nakshatra_ayanamsa: SiderealMode = "LAHIRI"
 
     def __post_init__(self) -> None:
         self.validate()
@@ -606,6 +609,7 @@ class AstrologicalSubjectFactory:
         calculate_lunar_phase: bool = True,
         custom_ayanamsa_t0: Optional[float] = None,
         custom_ayanamsa_ayan_t0: Optional[float] = None,
+        nakshatra_ayanamsa: SiderealMode = "LAHIRI",
         *,
         seconds: int = 0,
         suppress_geonames_warning: bool = False,
@@ -771,6 +775,7 @@ class AstrologicalSubjectFactory:
             perspective_type=perspective_type,
             custom_ayanamsa_t0=custom_ayanamsa_t0,
             custom_ayanamsa_ayan_t0=custom_ayanamsa_ayan_t0,
+            nakshatra_ayanamsa=nakshatra_ayanamsa,
         )
 
         # Add configuration data to calculation data
@@ -778,6 +783,7 @@ class AstrologicalSubjectFactory:
         calc_data["sidereal_mode"] = config.sidereal_mode
         calc_data["houses_system_identifier"] = config.houses_system_identifier
         calc_data["perspective_type"] = config.perspective_type
+        calc_data["nakshatra_ayanamsa"] = config.nakshatra_ayanamsa
 
         # Set up geonames username if needed
         if geonames_username is None and online and (not lat or not lng or not tz_str):
@@ -837,9 +843,27 @@ class AstrologicalSubjectFactory:
             alt=calc_data["altitude"],
         ) as iflag:
             calc_data["_iflag"] = iflag
+            # Calculate Nakshatra Ayanamsa Value (Hybrid Support)
+            if config.zodiac_type == "Sidereal":
+                # If the chart is already sidereal, we use its absolute positions directly
+                # (ayanamsa offset is already "baked in" to the degree)
+                calc_data["nakshatra_ayanamsa_value"] = 0.0
+            else:
+                # If Tropical, we calculate the offset for the chosen Nakshatra ayanamsa
+                try:
+                    mode_id = getattr(swe, f"SIDM_{config.nakshatra_ayanamsa}")
+                    swe.set_sid_mode(mode_id)
+                    ayan_res = swe.get_ayanamsa_ex_ut(calc_data["julian_day"], iflag)
+                    calc_data["nakshatra_ayanamsa_value"] = ayan_res[1]
+                except Exception as e:
+                    logging.warning(f"Could not calculate Nakshatra ayanamsa: {e}")
+                    calc_data["nakshatra_ayanamsa_value"] = None
+
             # House system name (previously set in _setup_ephemeris)
             calc_data["houses_system_name"] = swe.house_name(config.houses_system_identifier.encode("ascii"))
-            calculated_axial_cusps = AstrologicalSubjectFactory._calculate_houses(calc_data, active_points_list)
+            calculated_axial_cusps = AstrologicalSubjectFactory._calculate_houses(
+                calc_data, active_points_list, nakshatra_ayanamsa_value=calc_data.get("nakshatra_ayanamsa_value")
+            )
 
             # Compute sect (diurnal/nocturnal) BEFORE calculating planets
             # This is needed for Arabic Parts day/night formula selection
@@ -850,7 +874,12 @@ class AstrologicalSubjectFactory:
                 altitude=calc_data.get("altitude") or 0,
             )
 
-            AstrologicalSubjectFactory._calculate_planets(calc_data, active_points_list, calculated_axial_cusps)
+            AstrologicalSubjectFactory._calculate_planets(
+                calc_data,
+                active_points_list,
+                calculated_axial_cusps,
+                nakshatra_ayanamsa_value=calc_data.get("nakshatra_ayanamsa_value"),
+            )
 
             # Calculate ayanamsa value for sidereal charts (v5.12.4)
             if config.zodiac_type == "Sidereal":
@@ -899,6 +928,7 @@ class AstrologicalSubjectFactory:
         suppress_geonames_warning: bool = False,
         custom_ayanamsa_t0: Optional[float] = None,
         custom_ayanamsa_ayan_t0: Optional[float] = None,
+        nakshatra_ayanamsa: SiderealMode = "LAHIRI",
     ) -> AstrologicalSubjectModel:
         """
         Create an astrological subject from an ISO formatted UTC timestamp.
@@ -1055,6 +1085,7 @@ class AstrologicalSubjectFactory:
         suppress_geonames_warning: bool = False,
         custom_ayanamsa_t0: Optional[float] = None,
         custom_ayanamsa_ayan_t0: Optional[float] = None,
+        nakshatra_ayanamsa: SiderealMode = "LAHIRI",
     ) -> AstrologicalSubjectModel:
         """
         Create an astrological subject for the current moment in time.
@@ -1224,7 +1255,9 @@ class AstrologicalSubjectFactory:
 
     @staticmethod
     def _calculate_houses(
-        data: Dict[str, Any], active_points: Optional[List[AstrologicalPoint]]
+        data: Dict[str, Any],
+        active_points: Optional[List[AstrologicalPoint]],
+        nakshatra_ayanamsa_value: Optional[float] = None,
     ) -> List[AstrologicalPoint]:
         """
         Calculate house cusps and angular points (Ascendant, MC, etc.).
@@ -1317,7 +1350,11 @@ class AstrologicalSubjectFactory:
         point_type: PointType = "House"
         for i, (attr_name, house_name) in enumerate(HOUSE_CONFIG):
             data[attr_name] = get_kerykeion_point_from_degree(
-                cusps[i], house_name, point_type=point_type, speed=cusps_speed[i]
+                cusps[i],
+                house_name,
+                point_type=point_type,
+                speed=cusps_speed[i],
+                nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
             )
 
         # Store house names
@@ -1332,7 +1369,11 @@ class AstrologicalSubjectFactory:
         # Calculate Ascendant if needed
         if should_calculate("Ascendant"):
             data["ascendant"] = get_kerykeion_point_from_degree(
-                ascmc[0], "Ascendant", point_type=point_type, speed=ascmc_speed[0]
+                ascmc[0],
+                "Ascendant",
+                point_type=point_type,
+                speed=ascmc_speed[0],
+                nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
             )
             data["ascendant"].house = get_planet_house(data["ascendant"].abs_pos, data["_houses_degree_ut"])
             data["ascendant"].retrograde = False
@@ -1341,7 +1382,11 @@ class AstrologicalSubjectFactory:
         # Calculate Medium Coeli if needed
         if should_calculate("Medium_Coeli"):
             data["medium_coeli"] = get_kerykeion_point_from_degree(
-                ascmc[1], "Medium_Coeli", point_type=point_type, speed=ascmc_speed[1]
+                ascmc[1],
+                "Medium_Coeli",
+                point_type=point_type,
+                speed=ascmc_speed[1],
+                nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
             )
             data["medium_coeli"].house = get_planet_house(data["medium_coeli"].abs_pos, data["_houses_degree_ut"])
             data["medium_coeli"].retrograde = False
@@ -1351,7 +1396,11 @@ class AstrologicalSubjectFactory:
         if should_calculate("Descendant"):
             dsc_deg = math.fmod(ascmc[0] + 180, 360)
             data["descendant"] = get_kerykeion_point_from_degree(
-                dsc_deg, "Descendant", point_type=point_type, speed=ascmc_speed[0]
+                dsc_deg,
+                "Descendant",
+                point_type=point_type,
+                speed=ascmc_speed[0],
+                nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
             )
             data["descendant"].house = get_planet_house(data["descendant"].abs_pos, data["_houses_degree_ut"])
             data["descendant"].retrograde = False
@@ -1361,7 +1410,11 @@ class AstrologicalSubjectFactory:
         if should_calculate("Imum_Coeli"):
             ic_deg = math.fmod(ascmc[1] + 180, 360)
             data["imum_coeli"] = get_kerykeion_point_from_degree(
-                ic_deg, "Imum_Coeli", point_type=point_type, speed=ascmc_speed[1]
+                ic_deg,
+                "Imum_Coeli",
+                point_type=point_type,
+                speed=ascmc_speed[1],
+                nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
             )
             data["imum_coeli"].house = get_planet_house(data["imum_coeli"].abs_pos, data["_houses_degree_ut"])
             data["imum_coeli"].retrograde = False
@@ -1380,6 +1433,7 @@ class AstrologicalSubjectFactory:
         point_type: PointType,
         calculated_planets: List[AstrologicalPoint],
         active_points: List[AstrologicalPoint],
+        nakshatra_ayanamsa_value: Optional[float] = None,
     ) -> None:
         """
         Calculate a single celestial body's position with comprehensive error handling.
@@ -1399,6 +1453,7 @@ class AstrologicalSubjectFactory:
             point_type (PointType): Classification of the point type for the object.
             calculated_planets (List[str]): Running list of successfully calculated objects.
             active_points (List[AstrologicalPoint]): Active points list (modified on error).
+            nakshatra_ayanamsa_value (Optional[float]): Ayanamsa value for Nakshatra calculation.
 
         Side Effects:
             - Adds calculated object to data dictionary using lowercase planet_name as key
@@ -1432,7 +1487,12 @@ class AstrologicalSubjectFactory:
 
             # Create Kerykeion point from degree
             data[planet_name.lower()] = get_kerykeion_point_from_degree(
-                planet_calc[0], planet_name, point_type=point_type, speed=planet_calc[3], declination=declination
+                planet_calc[0],
+                planet_name,
+                point_type=point_type,
+                speed=planet_calc[3],
+                declination=declination,
+                nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
             )
 
             # Calculate house position
@@ -1458,6 +1518,7 @@ class AstrologicalSubjectFactory:
         houses_degree_ut: List[float],
         point_type: PointType,
         active_points: List[AstrologicalPoint],
+        nakshatra_ayanamsa_value: Optional[float] = None,
     ) -> None:
         """
         Ensure a required point is calculated for Arabic Parts computation.
@@ -1473,6 +1534,7 @@ class AstrologicalSubjectFactory:
             houses_degree_ut: House cusp degrees
             point_type: Classification of the point type
             active_points: List of active points (may be modified)
+            nakshatra_ayanamsa_value: Ayanamsa value for Nakshatra calculation.
         """
         point_key = point.lower()
         if point_key in data:
@@ -1488,7 +1550,11 @@ class AstrologicalSubjectFactory:
                 flags=iflag,
             )
             data["ascendant"] = get_kerykeion_point_from_degree(
-                ascmc[0], "Ascendant", point_type=point_type, speed=ascmc_speed[0]
+                ascmc[0],
+                "Ascendant",
+                point_type=point_type,
+                speed=ascmc_speed[0],
+                nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
             )
             data["ascendant"].house = get_planet_house(ascmc[0], houses_degree_ut)
             data["ascendant"].retrograde = False
@@ -1502,7 +1568,12 @@ class AstrologicalSubjectFactory:
             planet_eq = swe.calc_ut(julian_day, planet_id, iflag | swe.FLG_EQUATORIAL)[0]
             declination = planet_eq[1]
             data[point_key] = get_kerykeion_point_from_degree(
-                planet_calc[0], point, point_type=point_type, speed=planet_calc[3], declination=declination
+                planet_calc[0],
+                point,
+                point_type=point_type,
+                speed=planet_calc[3],
+                declination=declination,
+                nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
             )
             data[point_key].house = get_planet_house(planet_calc[0], houses_degree_ut)
             data[point_key].retrograde = planet_calc[3] < 0
@@ -1563,6 +1634,7 @@ class AstrologicalSubjectFactory:
         point_type: PointType,
         active_points: List[AstrologicalPoint],
         calculated_planets: List[AstrologicalPoint],
+        nakshatra_ayanamsa_value: Optional[float] = None,
     ) -> None:
         """
         Calculate an Arabic Part (Lot) using its configuration.
@@ -1582,6 +1654,7 @@ class AstrologicalSubjectFactory:
             point_type: Classification of the point type
             active_points: List of active points (may be modified)
             calculated_planets: List of successfully calculated points
+            nakshatra_ayanamsa_value: Ayanamsa value for Nakshatra calculation.
         """
         required_points = config["required"]
 
@@ -1594,7 +1667,14 @@ class AstrologicalSubjectFactory:
         # Ensure all required points are calculated
         for point in required_points:
             AstrologicalSubjectFactory._ensure_point_calculated(
-                point, data, julian_day, iflag, houses_degree_ut, point_type, active_points
+                point,
+                data,
+                julian_day,
+                iflag,
+                houses_degree_ut,
+                point_type,
+                active_points,
+                nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
             )
 
         # Verify all required points are available
@@ -1620,7 +1700,9 @@ class AstrologicalSubjectFactory:
 
         # Store the result
         part_key = part_name.lower()
-        data[part_key] = get_kerykeion_point_from_degree(part_deg, part_name, point_type=point_type)
+        data[part_key] = get_kerykeion_point_from_degree(
+            part_deg, part_name, point_type=point_type, nakshatra_ayanamsa_value=nakshatra_ayanamsa_value
+        )
         data[part_key].house = get_planet_house(part_deg, houses_degree_ut)
         data[part_key].retrograde = False  # Arabic Parts are never retrograde
         calculated_planets.append(part_name)
@@ -1630,6 +1712,7 @@ class AstrologicalSubjectFactory:
         data: Dict[str, Any],
         active_points: List[AstrologicalPoint],
         calculated_axial_cusps: Optional[List[AstrologicalPoint]] = None,
+        nakshatra_ayanamsa_value: Optional[float] = None,
     ) -> None:
         """
         Calculate positions for all requested celestial bodies and special points.
@@ -1648,6 +1731,8 @@ class AstrologicalSubjectFactory:
             active_points (List[AstrologicalPoint]): Mutable list of points to calculate.
                 Modified during execution to remove failed calculations and add
                 automatically required points for Arabic parts.
+            calculated_axial_cusps (Optional[List[AstrologicalPoint]]): List of axial cusps.
+            nakshatra_ayanamsa_value (Optional[float]): Ayanamsa value for Nakshatra calculation.
 
         Celestial Bodies Calculated:
             Traditional Planets:
@@ -1753,6 +1838,7 @@ class AstrologicalSubjectFactory:
                     point_type,
                     calculated_planets,
                     active_points,
+                    nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
                 )
 
                 # Special handling for lunar nodes: calculate declination
@@ -1776,6 +1862,7 @@ class AstrologicalSubjectFactory:
                             point_type=point_type,
                             speed=-north_data.speed if north_data.speed is not None else None,
                             declination=-north_data.declination if north_data.declination is not None else None,
+                            nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
                         )
                         data[south_node.lower()].house = get_planet_house(south_deg, houses_degree_ut)
                         data[south_node.lower()].retrograde = north_data.retrograde
@@ -1793,6 +1880,7 @@ class AstrologicalSubjectFactory:
                             point_type=point_type,
                             speed=-north_data.speed if north_data.speed is not None else None,
                             declination=-north_data.declination if north_data.declination is not None else None,
+                            nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
                         )
                         data[south_node_true.lower()].house = get_planet_house(south_deg, houses_degree_ut)
                         data[south_node_true.lower()].retrograde = north_data.retrograde
@@ -1815,6 +1903,7 @@ class AstrologicalSubjectFactory:
                         point_type,
                         calculated_planets,
                         active_points,
+                        nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
                     )
                 except Exception as e:
                     logging.warning(f"Could not calculate {tno_name} position: {e}")
@@ -1853,6 +1942,7 @@ class AstrologicalSubjectFactory:
                         speed=star_speed,
                         declination=star_dec,
                         magnitude=star_mag,
+                        nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
                     )
                     data[star_key].house = get_planet_house(star_deg, houses_degree_ut)
                     data[star_key].retrograde = False  # Fixed stars are never retrograde
@@ -1879,6 +1969,7 @@ class AstrologicalSubjectFactory:
                     point_type,
                     active_points,
                     calculated_planets,
+                    nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
                 )
 
         # =============================================================================
@@ -1899,7 +1990,9 @@ class AstrologicalSubjectFactory:
 
                 # Calculate Vertex if requested
                 if should_calculate("Vertex"):
-                    data["vertex"] = get_kerykeion_point_from_degree(vertex_deg, "Vertex", point_type=point_type)
+                    data["vertex"] = get_kerykeion_point_from_degree(
+                        vertex_deg, "Vertex", point_type=point_type, nakshatra_ayanamsa_value=nakshatra_ayanamsa_value
+                    )
                     data["vertex"].house = get_planet_house(vertex_deg, houses_degree_ut)
                     data["vertex"].retrograde = False
                     calculated_planets.append("Vertex")
@@ -1908,7 +2001,10 @@ class AstrologicalSubjectFactory:
                 if should_calculate("Anti_Vertex"):
                     anti_vertex_deg = math.fmod(vertex_deg + 180, 360)
                     data["anti_vertex"] = get_kerykeion_point_from_degree(
-                        anti_vertex_deg, "Anti_Vertex", point_type=point_type
+                        anti_vertex_deg,
+                        "Anti_Vertex",
+                        point_type=point_type,
+                        nakshatra_ayanamsa_value=nakshatra_ayanamsa_value,
                     )
                     data["anti_vertex"].house = get_planet_house(anti_vertex_deg, houses_degree_ut)
                     data["anti_vertex"].retrograde = False

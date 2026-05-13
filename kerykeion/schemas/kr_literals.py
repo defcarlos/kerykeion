@@ -385,6 +385,52 @@ ReturnType: TypeAlias = Literal["Lunar", "Solar"]
 """Literal type for Return Types"""
 
 
+Nakshatra: TypeAlias = Literal[
+    "Ashwini",
+    "Bharani",
+    "Krittika",
+    "Rohini",
+    "Mrigashira",
+    "Ardra",
+    "Punarvasu",
+    "Pushya",
+    "Ashlesha",
+    "Magha",
+    "Purva Phalguni",
+    "Uttara Phalguni",
+    "Hasta",
+    "Chitra",
+    "Swati",
+    "Vishakha",
+    "Anuradha",
+    "Jyeshtha",
+    "Mula",
+    "Purva Ashadha",
+    "Uttara Ashadha",
+    "Shravana",
+    "Dhanishta",
+    "Shatabhisha",
+    "Purva Bhadrapada",
+    "Uttara Bhadrapada",
+    "Revati",
+]
+"""Literal type for the 27 Nakshatras (Lunar Mansions)"""
+
+
+NakshatraLord: TypeAlias = Literal[
+    "Ketu",
+    "Venus",
+    "Sun",
+    "Moon",
+    "Mars",
+    "Rahu",
+    "Jupiter",
+    "Saturn",
+    "Mercury",
+]
+"""Literal type for the 9 Vimsottari Dasha lords of the Nakshatras"""
+
+
 # ---------------------------------------------------------------------------
 # Deprecated aliases for backward compatibility with Kerykeion v4.x
 # ---------------------------------------------------------------------------
