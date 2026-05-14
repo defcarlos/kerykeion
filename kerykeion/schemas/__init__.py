@@ -60,6 +60,8 @@ from .kr_models import (
     YogaModel,
     KaranaModel,
     PanchangModel,
+    VargaPointModel,
+    VargaChartModel,
 )
 from .chart_template_model import ChartTemplateModel
 from .settings_models import KerykeionSettingsModel
@@ -125,4 +127,6 @@ __all__ = [
     "YogaModel",
     "KaranaModel",
     "PanchangModel",
+    "VargaPointModel",
+    "VargaChartModel",
 ]

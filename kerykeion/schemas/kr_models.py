@@ -27,7 +27,7 @@ access to fields while maintaining Pydantic validation.
 This is part of Kerykeion (C) 2025 Giacomo Battaglia
 """
 
-from typing import Union, Optional, List, Literal
+from typing import Union, Optional, List, Literal, Dict
 from typing_extensions import TypedDict
 from pydantic import BaseModel, Field
 from kerykeion.schemas.kr_literals import AspectName
@@ -473,6 +473,25 @@ class PanchangModel(SubscriptableBaseModel):
     vara_end_time: Optional[str] = Field(default=None, description="End time of the Vara (Next Vedic Sunrise) (ISO).")
 
 
+class VargaPointModel(KerykeionPointModel):
+    """
+    Model representing a point in a divisional (Varga) chart.
+    """
+
+    varga_type: str = Field(description="The type of Varga chart (e.g., D9, D2).")
+
+
+class VargaChartModel(SubscriptableBaseModel):
+    """
+    Model representing a complete divisional (Varga) chart.
+    """
+
+    varga_type: str = Field(description="The type of Varga chart (e.g., D9, D2).")
+    points: Dict[str, VargaPointModel] = Field(
+        description="Dictionary mapping point names to their divisional positions."
+    )
+
+
 class AstrologicalBaseModel(SubscriptableBaseModel):
     """
     Base model containing common fields for all astrological subjects.
@@ -657,6 +676,11 @@ class AstrologicalBaseModel(SubscriptableBaseModel):
 
     # Panchang (Five Limbs of Time)
     panchang: Optional[PanchangModel] = Field(default=None, description="Panchang (Five Limbs of Time) data.")
+
+    # Divisional Charts (Vargas)
+    vargas: Optional[Dict[str, VargaChartModel]] = Field(
+        default=None, description="Collection of divisional charts (Vargas) keyed by type (e.g., 'D9')."
+    )
 
 
 class AstrologicalSubjectModel(AstrologicalBaseModel):

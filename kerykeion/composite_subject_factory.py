@@ -392,7 +392,18 @@ class CompositeSubjectFactory:
         self._calculate_midpoint_composite_points_and_houses()
         self._calculate_composite_lunar_phase()
 
-        return CompositeSubjectModel(**self.__dict__)
+        # Create the model
+        subject = CompositeSubjectModel(**self.__dict__)
+
+        # Calculate divisional charts (Vargas)
+        try:
+            from kerykeion.varga_factory import VargaFactory
+            subject.vargas = VargaFactory(subject).calculate_saptavarga()
+        except Exception as e:
+            import logging
+            logging.warning(f"Could not calculate divisional charts (Vargas) for composite chart: {e}")
+
+        return subject
 
 
 if __name__ == "__main__":

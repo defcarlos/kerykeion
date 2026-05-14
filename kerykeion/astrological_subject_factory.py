@@ -997,8 +997,17 @@ class AstrologicalSubjectFactory:
         else:
             calc_data["panchang"] = None
 
-        # Create and return the AstrologicalSubjectModel
-        return AstrologicalSubjectModel(**calc_data)
+        # Create the AstrologicalSubjectModel
+        subject = AstrologicalSubjectModel(**calc_data)
+
+        # Calculate divisional charts (Vargas)
+        try:
+            from kerykeion.varga_factory import VargaFactory
+            subject.vargas = VargaFactory(subject).calculate_saptavarga()
+        except Exception as e:
+            logging.warning(f"Could not calculate divisional charts (Vargas): {e}")
+
+        return subject
 
     @classmethod
     def from_iso_utc_time(
