@@ -1007,6 +1007,13 @@ class AstrologicalSubjectFactory:
         except Exception as e:
             logging.warning(f"Could not calculate divisional charts (Vargas): {e}")
 
+        # Calculate Shadbala (Six-fold Strength)
+        try:
+            from kerykeion.shadbala_factory import ShadbalaFactory
+            subject.shadbala = ShadbalaFactory(subject).calculate()
+        except Exception as e:
+            logging.warning(f"Could not calculate Shadbala: {e}")
+
         return subject
 
     @classmethod

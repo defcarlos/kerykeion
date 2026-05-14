@@ -403,6 +403,14 @@ class CompositeSubjectFactory:
             import logging
             logging.warning(f"Could not calculate divisional charts (Vargas) for composite chart: {e}")
 
+        # Calculate Shadbala (Six-fold Strength)
+        try:
+            from kerykeion.shadbala_factory import ShadbalaFactory
+            subject.shadbala = ShadbalaFactory(subject).calculate()
+        except Exception as e:
+            import logging
+            logging.warning(f"Could not calculate Shadbala for composite chart: {e}")
+
         return subject
 
 

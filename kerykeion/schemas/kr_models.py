@@ -492,6 +492,36 @@ class VargaChartModel(SubscriptableBaseModel):
     )
 
 
+class PlanetaryShadbalaModel(SubscriptableBaseModel):
+    """
+    Model representing the Shadbala (Six-fold Strength) of a single planet.
+    All values are in Virupas (60 Virupas = 1 Rupa).
+    """
+
+    sthana_bala: float = Field(description="Positional strength.")
+    dig_bala: float = Field(description="Directional strength.")
+    kala_bala: float = Field(description="Temporal strength.")
+    chesta_bala: float = Field(description="Motional strength.")
+    naisargika_bala: float = Field(description="Natural strength.")
+    drik_bala: float = Field(description="Aspectual strength.")
+    total_virupas: float = Field(description="Total strength in Virupas.")
+    total_rupas: float = Field(description="Total strength in Rupas (Virupas / 60).")
+
+
+class ShadbalaModel(SubscriptableBaseModel):
+    """
+    Model representing the Shadbala for all traditional planets.
+    """
+
+    sun: PlanetaryShadbalaModel
+    moon: PlanetaryShadbalaModel
+    mercury: PlanetaryShadbalaModel
+    venus: PlanetaryShadbalaModel
+    mars: PlanetaryShadbalaModel
+    jupiter: PlanetaryShadbalaModel
+    saturn: PlanetaryShadbalaModel
+
+
 class AstrologicalBaseModel(SubscriptableBaseModel):
     """
     Base model containing common fields for all astrological subjects.
@@ -680,6 +710,11 @@ class AstrologicalBaseModel(SubscriptableBaseModel):
     # Divisional Charts (Vargas)
     vargas: Optional[Dict[str, VargaChartModel]] = Field(
         default=None, description="Collection of divisional charts (Vargas) keyed by type (e.g., 'D9')."
+    )
+
+    # Shadbala (Six-fold Strength)
+    shadbala: Optional[ShadbalaModel] = Field(
+        default=None, description="Shadbala (Six-fold Strength) data for traditional planets."
     )
 
 
