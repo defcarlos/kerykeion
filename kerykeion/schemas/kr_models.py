@@ -506,6 +506,8 @@ class PlanetaryShadbalaModel(SubscriptableBaseModel):
     drik_bala: float = Field(description="Aspectual strength.")
     total_virupas: float = Field(description="Total strength in Virupas.")
     total_rupas: float = Field(description="Total strength in Rupas (Virupas / 60).")
+    minimum_required: float = Field(description="Minimum required strength in Rupas for this planet.")
+    is_strong: bool = Field(description="Whether the planet meets or exceeds the minimum required strength.")
 
 
 class ShadbalaModel(SubscriptableBaseModel):

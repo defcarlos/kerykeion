@@ -105,3 +105,15 @@ SAPTAVARGA_WEIGHTS = {
     "Great_Enemy": 1.875,
     "Debilitation": 0,
 }
+
+# Shadbala Minimum Strength Requirements (in Rupas)
+# Standard Parashari thresholds
+SHADBALA_MINIMUM_REQUIREMENTS = {
+    "Sun": 6.5,
+    "Moon": 6.0,
+    "Mars": 5.0,
+    "Mercury": 7.0,
+    "Jupiter": 6.5,
+    "Venus": 5.5,
+    "Saturn": 5.0,
+}

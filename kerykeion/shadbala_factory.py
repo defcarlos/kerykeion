@@ -35,6 +35,7 @@ from kerykeion.settings.vedic_constants import (
     PLANETARY_DOMICILES,
     NATURAL_RELATIONSHIPS,
     SAPTAVARGA_WEIGHTS,
+    SHADBALA_MINIMUM_REQUIREMENTS,
 )
 
 
