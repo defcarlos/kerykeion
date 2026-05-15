@@ -167,7 +167,7 @@ class ShadbalaFactory:
         Angular (1,4,7,10) = 60, Succedent (2,5,8,11) = 30, Cadent = 15
         """
         if not planet.house: return 0.0
-        h_num = int(planet.house.split("_")[0])
+        h_num = self._get_house_num(planet.house)
         if h_num in [1, 4, 7, 10]: return 60.0
         if h_num in [2, 5, 8, 11]: return 30.0
         return 15.0
@@ -279,32 +279,96 @@ class ShadbalaFactory:
     def _calculate_drik_bala(self, planet: KerykeionPointModel) -> float:
         """
         Aspectual strength (Drik Bala).
+        Sum of (Benefic Aspect Strengths / 4) - Sum of (Malefic Aspect Strengths / 4).
         """
         drik_bala = 0.0
-        benefics, malefics = ["Jupiter", "Venus"], ["Sun", "Mars", "Saturn"]
-        
-        for other_name in self.TRADITIONAL_PLANETS:
-            if other_name == planet.name: continue
-            other = self.subject[other_name.lower()]
-            if not other: continue
-            
-            dist = planet.abs_pos - other.abs_pos
-            if dist < 0: dist += 360
-            
-            aspect_strength = 0.0
-            if 30 <= dist <= 180: aspect_strength = (dist - 30) / 150.0 * 60.0
-            elif 180 < dist <= 300: aspect_strength = (300 - dist) / 120.0 * 60.0
-                
-            if other_name == "Mars" and (dist == 90 or dist == 210): aspect_strength = 60.0
-            elif other_name == "Jupiter" and (dist == 120 or dist == 240): aspect_strength = 60.0
-            elif other_name == "Saturn" and (dist == 60 or dist == 270): aspect_strength = 60.0
 
-            if other_name in benefics: drik_bala += (aspect_strength / 4.0)
-            elif other_name in malefics: drik_bala -= (aspect_strength / 4.0)
-                
+        for other_name in self.TRADITIONAL_PLANETS:
+            if other_name == planet.name:
+                continue
+
+            other = self.subject[other_name.lower()]
+            if not other:
+                continue
+
+            # Calculate distance from 'other' to 'planet' (forward)
+            dist = planet.abs_pos - other.abs_pos
+            if dist < 0:
+                dist += 360
+
+            # 1. Base Aspect Strength (Degree-based)
+            # 0 at 30, 60 at 180, 0 at 300
+            aspect_strength = 0.0
+            if 30 <= dist <= 180:
+                aspect_strength = (dist - 30) / 150.0 * 60.0
+            elif 180 < dist <= 300:
+                aspect_strength = (300 - dist) / 120.0 * 60.0
+
+            # 2. Special Aspects (Mars, Jupiter, Saturn)
+            # We use a 15-degree window around the target degree to graduate the strength.
+            special_strength = 0.0
+            if other_name == "Mars":
+                # Full aspect on 4th (90) and 8th (210) houses
+                if abs(dist - 90) <= 15:
+                    special_strength = 60.0 * (1 - abs(dist - 90) / 15)
+                elif abs(dist - 210) <= 15:
+                    special_strength = 60.0 * (1 - abs(dist - 210) / 15)
+            elif other_name == "Jupiter":
+                # Full aspect on 5th (120) and 9th (240) houses
+                if abs(dist - 120) <= 15:
+                    special_strength = 60.0 * (1 - abs(dist - 120) / 15)
+                elif abs(dist - 240) <= 15:
+                    special_strength = 60.0 * (1 - abs(dist - 240) / 15)
+            elif other_name == "Saturn":
+                # Full aspect on 3rd (60) and 10th (270) houses
+                if abs(dist - 60) <= 15:
+                    special_strength = 60.0 * (1 - abs(dist - 60) / 15)
+                elif abs(dist - 270) <= 15:
+                    special_strength = 60.0 * (1 - abs(dist - 270) / 15)
+
+            aspect_strength = max(aspect_strength, special_strength)
+
+            # 3. Apply Benefic/Malefic Factor
+            if self._is_benefic(other_name):
+                drik_bala += aspect_strength / 4.0
+            else:
+                drik_bala -= aspect_strength / 4.0
+
         return drik_bala
 
     # --- Utils ---
+
+    def _is_benefic(self, planet_name: str) -> bool:
+        """
+        Determines if a planet is a benefic or malefic for Drik Bala.
+        """
+        if planet_name in ["Jupiter", "Venus"]:
+            return True
+        if planet_name in ["Sun", "Mars", "Saturn"]:
+            return False
+
+        if planet_name == "Moon":
+            # Moon is benefic if waxing (Shukla Paksha).
+            sun, moon = self.subject.sun, self.subject.moon
+            if not sun or not moon:
+                return True
+            dist = moon.abs_pos - sun.abs_pos
+            if dist < 0:
+                dist += 360
+            return 0 < dist < 180
+
+        if planet_name == "Mercury":
+            # Mercury is benefic unless associated with malefics in the same sign.
+            mercury = self.subject.mercury
+            if not mercury:
+                return True
+            for malefic in ["Sun", "Mars", "Saturn"]:
+                m_data = self.subject[malefic.lower()]
+                if m_data and m_data.sign_num == mercury.sign_num:
+                    return False
+            return True
+
+        return True
 
     def _get_temporary_friends(self, planet_name: str) -> List[str]:
         """
