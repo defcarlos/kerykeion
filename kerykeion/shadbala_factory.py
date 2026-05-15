@@ -90,85 +90,23 @@ class ShadbalaFactory:
 
         return ShadbalaModel(**planetary_scores)
 
-    def _calculate_naisargika_bala(self, planet_name: str) -> float:
-        """
-        Natural strength is a fixed value based on the planet.
-        """
-        return NAISARGIKA_BALA_VALUES.get(planet_name, 0.0)
-
-    def _calculate_dig_bala(self, planet: KerykeionPointModel) -> float:
-        """
-        Directional strength based on proximity to the ideal house cusp.
-        Max 60 Virupas, Min 0 Virupas at 180° away.
-        """
-        max_house_num = DIG_BALA_MAX_POINTS.get(planet.name)
-        if not max_house_num:
-            return 0.0
-
-        # Map house number to actual cusp name
-        house_map = {
-            1: "first_house",
-            4: "fourth_house",
-            7: "seventh_house",
-            10: "tenth_house",
-        }
-        target_cusp_name = house_map[max_house_num]
-        target_cusp: KerykeionPointModel = self.subject[target_cusp_name]
-        
-        # Calculate arc distance
-        # Dig Bala = (180 - Arc Distance from Zero Point) / 3
-        # Where Zero Point is 180° from Max Point.
-        # Simplified: Dig Bala = (60 - (Arc Distance from Max Point / 3))
-        
-        diff = abs(planet.abs_pos - target_cusp.abs_pos)
-        if diff > 180:
-            diff = 360 - diff
-            
-        # Linear degradation: 60 points at 0° distance, 0 points at 180° distance
-        # Formula: (180 - diff) / 180 * 60 = (180 - diff) / 3
-        dig_bala = (180.0 - diff) / 3.0
-        return dig_bala
-
-    def _calculate_chesta_bala(self, planet: KerykeionPointModel) -> float:
-        """
-        Motional strength based on planetary speed.
-        Note: Sun and Moon use a different calculation (Ayana Bala), 
-        but in some simplified systems they are assigned based on speed too.
-        Standard Parashari: Sun and Moon don't have Chesta Bala (it's 0).
-        """
-        if planet.name in ["Sun", "Moon"]:
-            return 0.0
-            
-        # Simplified Chesta Bala based on speed relative to average
-        # Retrograde planets get high Chesta Bala.
-        if planet.retrograde:
-            return 60.0 # Standard simplification for retrograde
-            
-        # For non-retrograde, it depends on speed (slower = stronger)
-        # This is a placeholder for a more complex speed-ratio calculation
-        return 30.0 
+    # --- 1. Sthana Bala (Positional Strength) ---
 
     def _calculate_sthana_bala(self, planet: KerykeionPointModel) -> float:
         """
         Positional strength (Sthana Bala).
-        Includes:
-        1. Ucha Bala (Exaltation)
-        2. Saptavarga Bala (Strength in 7 divisional charts)
-        3. Ojhayugmarasiamsa Bala (Odd/Even sign/navamsha)
-        4. Kendradi Bala (Strength in houses)
-        5. Drekkana Bala (Strength in decanates)
         """
         ucha = self._calculate_ucha_bala(planet)
         saptavarga = self._calculate_saptavarga_bala(planet)
+        kendradi = self._calculate_kendradi_bala(planet)
+        ojha = self._calculate_ojha_bala(planet)
         
-        # Simplified: Sum of main components
-        return ucha + saptavarga
+        return ucha + saptavarga + kendradi + ojha
 
     def _calculate_ucha_bala(self, planet: KerykeionPointModel) -> float:
         """
         Points based on distance from Debilitation point.
         Max 60 at Exaltation, 0 at Debilitation.
-        Formula: Distance from Debilitation / 3
         """
         deb_sign, deb_deg = DEBILITATION_DEGREES.get(planet.name, (0, 0))
         deb_abs = (deb_sign * 30) + deb_deg
@@ -177,18 +115,20 @@ class ShadbalaFactory:
         if diff > 180:
             diff = 360 - diff
             
-        # Distance from debilitation: 0° = 0 pts, 180° = 60 pts
         return diff / 3.0
 
     def _calculate_saptavarga_bala(self, planet: KerykeionPointModel) -> float:
         """
         Calculate strength across 7 divisional charts.
+        Includes combined friendship (Natural + Temporary).
         """
         if not self.subject.vargas:
             return 0.0
             
         total_saptavarga = 0.0
         varga_list = ["D1", "D2", "D3", "D7", "D9", "D12", "D30"]
+        
+        temp_friends = self._get_temporary_friends(planet.name)
         
         for v_type in varga_list:
             v_chart = self.subject.vargas.get(v_type)
@@ -197,177 +137,216 @@ class ShadbalaFactory:
             p_varga = v_chart.points.get(planet.name.lower())
             if not p_varga: continue
             
-            # 1. Check if Moolatrikona (Only in D1)
             if v_type == "D1":
                 mt = MOOLATRIKONA_RANGES.get(planet.name)
                 if mt and p_varga.sign_num == mt[0] and mt[1] <= p_varga.position <= mt[2]:
                     total_saptavarga += SAPTAVARGA_WEIGHTS["Moolatrikona"]
                     continue
             
-            # 2. Check if Own Sign
             if p_varga.sign_num in PLANETARY_DOMICILES.get(planet.name, []):
                 total_saptavarga += SAPTAVARGA_WEIGHTS["Own_Sign"]
                 continue
                 
-            # 3. Check Friendship
-            # Get the ruler of the sign the planet is in
             ruler = self._get_sign_ruler(p_varga.sign_num)
             if ruler:
-                rel = NATURAL_RELATIONSHIPS.get(planet.name, {}).get(ruler, 0)
-                if rel == 1: total_saptavarga += SAPTAVARGA_WEIGHTS["Friend"]
-                elif rel == -1: total_saptavarga += SAPTAVARGA_WEIGHTS["Enemy"]
+                natural_rel = NATURAL_RELATIONSHIPS.get(planet.name, {}).get(ruler, 0)
+                temp_rel = 1 if ruler in temp_friends else -1
+                combined = natural_rel + temp_rel
+                
+                if combined >= 2: total_saptavarga += SAPTAVARGA_WEIGHTS["Great_Friend"]
+                elif combined == 1: total_saptavarga += SAPTAVARGA_WEIGHTS["Friend"]
+                elif combined == -1: total_saptavarga += SAPTAVARGA_WEIGHTS["Enemy"]
+                elif combined <= -2: total_saptavarga += SAPTAVARGA_WEIGHTS["Great_Enemy"]
                 else: total_saptavarga += SAPTAVARGA_WEIGHTS["Neutral"]
                 
         return total_saptavarga
+
+    def _calculate_kendradi_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Strength based on house type.
+        Angular (1,4,7,10) = 60, Succedent (2,5,8,11) = 30, Cadent = 15
+        """
+        if not planet.house: return 0.0
+        h_num = int(planet.house.split("_")[0])
+        if h_num in [1, 4, 7, 10]: return 60.0
+        if h_num in [2, 5, 8, 11]: return 30.0
+        return 15.0
+
+    def _calculate_ojha_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Ojhayugmarasiamsa Bala (Odd/Even sign parity).
+        15 points each for matching parity in D1 and D9.
+        """
+        total_ojha = 0.0
+        odd_planets = ["Sun", "Mars", "Jupiter", "Mercury", "Saturn"]
+        even_planets = ["Moon", "Venus"]
+        
+        is_odd_sign = planet.sign_num % 2 == 0 # 0=Ari (Odd), 1=Tau (Even)
+        if planet.name in odd_planets and is_odd_sign: total_ojha += 15.0
+        elif planet.name in even_planets and not is_odd_sign: total_ojha += 15.0
+        
+        d9 = self.subject.vargas.get("D9") if self.subject.vargas else None
+        if d9:
+            p_d9 = d9.points.get(planet.name.lower())
+            if p_d9:
+                is_odd_d9 = p_d9.sign_num % 2 == 0
+                if planet.name in odd_planets and is_odd_d9: total_ojha += 15.0
+                elif planet.name in even_planets and not is_odd_d9: total_ojha += 15.0
+                
+        return total_ojha
+
+    # --- 2. Dig Bala (Directional Strength) ---
+
+    def _calculate_dig_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Directional strength based on proximity to the ideal house cusp.
+        """
+        max_house_num = DIG_BALA_MAX_POINTS.get(planet.name)
+        if not max_house_num: return 0.0
+
+        house_map = {1: "first_house", 4: "fourth_house", 7: "seventh_house", 10: "tenth_house"}
+        target_cusp: KerykeionPointModel = self.subject[house_map[max_house_num]]
+        
+        diff = abs(planet.abs_pos - target_cusp.abs_pos)
+        if diff > 180: diff = 360 - diff
+        return (180.0 - diff) / 3.0
+
+    # --- 3. Kala Bala (Temporal Strength) ---
+
+    def _calculate_kala_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Temporal strength (Kala Bala).
+        """
+        nathonnatha = self._calculate_nathonnatha_bala(planet)
+        paksha = self._calculate_paksha_bala(planet)
+        return nathonnatha + paksha
+
+    def _calculate_nathonnatha_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Points based on Day/Night birth.
+        """
+        is_diurnal = self.subject.is_diurnal
+        strong_day = ["Sun", "Jupiter", "Venus"]
+        strong_night = ["Moon", "Mars", "Saturn"]
+        
+        if planet.name == "Mercury": return 60.0
+        if is_diurnal: return 60.0 if planet.name in strong_day else 0.0
+        return 60.0 if planet.name in strong_night else 0.0
+
+    def _calculate_paksha_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Points based on Moon phase.
+        """
+        sun, moon = self.subject.sun, self.subject.moon
+        if not sun or not moon: return 0.0
+        
+        dist = moon.abs_pos - sun.abs_pos
+        if dist < 0: dist += 360
+        
+        moon_paksha = dist / 3.0
+        if moon_paksha > 60: moon_paksha = 120 - moon_paksha
+        
+        if planet.name in ["Jupiter", "Venus", "Moon", "Mercury"]: return moon_paksha
+        return 60.0 - moon_paksha
+
+    # --- 4. Chesta Bala (Motional Strength) ---
+
+    def _calculate_chesta_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Motional strength based on planetary speed.
+        """
+        if planet.name in ["Sun", "Moon"]: return 0.0
+        if planet.retrograde: return 60.0
+            
+        avg_speeds = {"Mars": 0.524, "Mercury": 1.383, "Jupiter": 0.083, "Venus": 1.200, "Saturn": 0.033}
+        avg = avg_speeds.get(planet.name, 1.0)
+        speed = abs(planet.speed) if planet.speed is not None else avg
+        
+        ratio = speed / avg
+        if ratio > 2.0: ratio = 2.0
+        return max(0.0, min(60.0, (2.0 - ratio) * 30.0))
+
+    # --- 5. Naisargika Bala (Natural Strength) ---
+
+    def _calculate_naisargika_bala(self, planet_name: str) -> float:
+        """
+        Natural strength is a fixed value based on the planet.
+        """
+        return NAISARGIKA_BALA_VALUES.get(planet_name, 0.0)
+
+    # --- 6. Drik Bala (Aspectual Strength) ---
+
+    def _calculate_drik_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Aspectual strength (Drik Bala).
+        """
+        drik_bala = 0.0
+        benefics, malefics = ["Jupiter", "Venus"], ["Sun", "Mars", "Saturn"]
+        
+        for other_name in self.TRADITIONAL_PLANETS:
+            if other_name == planet.name: continue
+            other = self.subject[other_name.lower()]
+            if not other: continue
+            
+            dist = planet.abs_pos - other.abs_pos
+            if dist < 0: dist += 360
+            
+            aspect_strength = 0.0
+            if 30 <= dist <= 180: aspect_strength = (dist - 30) / 150.0 * 60.0
+            elif 180 < dist <= 300: aspect_strength = (300 - dist) / 120.0 * 60.0
+                
+            if other_name == "Mars" and (dist == 90 or dist == 210): aspect_strength = 60.0
+            elif other_name == "Jupiter" and (dist == 120 or dist == 240): aspect_strength = 60.0
+            elif other_name == "Saturn" and (dist == 60 or dist == 270): aspect_strength = 60.0
+
+            if other_name in benefics: drik_bala += (aspect_strength / 4.0)
+            elif other_name in malefics: drik_bala -= (aspect_strength / 4.0)
+                
+        return drik_bala
+
+    # --- Utils ---
+
+    def _get_temporary_friends(self, planet_name: str) -> List[str]:
+        """
+        Vedic Temporary Friendship (Tatkalika Maitri).
+        """
+        friends = []
+        target = self.subject[planet_name.lower()]
+        if not target: return []
+        
+        target_h = self._get_house_num(target.house)
+        if target_h == 0: return []
+
+        for other_name in self.TRADITIONAL_PLANETS:
+            if other_name == planet_name: continue
+            other = self.subject[other_name.lower()]
+            if not other: continue
+            
+            other_h = self._get_house_num(other.house)
+            if other_h == 0: continue
+            
+            dist = (other_h - target_h) % 12
+            if dist == 0: dist = 12
+            if dist in [2, 3, 4, 10, 11, 12]: friends.append(other_name)
+        return friends
+
+    def _get_house_num(self, house_name: Optional[str]) -> int:
+        """
+        Converts house string (e.g., 'First_House') to integer (1-12).
+        """
+        if not house_name: return 0
+        
+        mapping = {
+            "First_House": 1, "Second_House": 2, "Third_House": 3, "Fourth_House": 4,
+            "Fifth_House": 5, "Sixth_House": 6, "Seventh_House": 7, "Eighth_House": 8,
+            "Ninth_House": 9, "Tenth_House": 10, "Eleventh_House": 11, "Twelfth_House": 12
+        }
+        return mapping.get(house_name, 0)
 
     def _get_sign_ruler(self, sign_num: int) -> Optional[str]:
         """
         Returns the name of the traditional ruler of a sign.
         """
         for planet, signs in PLANETARY_DOMICILES.items():
-            if sign_num in signs:
-                return planet
+            if sign_num in signs: return planet
         return None
-
-    def _calculate_kala_bala(self, planet: KerykeionPointModel) -> float:
-        """
-        Temporal strength (Kala Bala).
-        Includes:
-        1. Nathonnatha Bala (Day/Night strength)
-        2. Paksha Bala (Moon phase strength)
-        """
-        nathonnatha = self._calculate_nathonnatha_bala(planet)
-        paksha = self._calculate_paksha_bala(planet)
-        
-        # Total Kala Bala (simplified sum for now)
-        return nathonnatha + paksha
-
-    def _calculate_nathonnatha_bala(self, planet: KerykeionPointModel) -> float:
-        """
-        Points based on Day/Night birth.
-        Moon, Mars, Saturn are strong at Night.
-        Sun, Jupiter, Venus are strong at Day.
-        Mercury is always strong.
-        """
-        is_diurnal = self.subject.is_diurnal
-        
-        strong_day = ["Sun", "Jupiter", "Venus"]
-        strong_night = ["Moon", "Mars", "Saturn"]
-        
-        if planet.name == "Mercury":
-            return 60.0
-        
-        if is_diurnal:
-            return 60.0 if planet.name in strong_day else 0.0
-        else:
-            return 60.0 if planet.name in strong_night else 0.0
-
-    def _calculate_paksha_bala(self, planet: KerykeionPointModel) -> float:
-        """
-        Points based on Moon phase.
-        Benefics are strong in Shukla Paksha (Waxing).
-        Malefics are strong in Krishna Paksha (Waning).
-        Moon's Paksha Bala is (Distance from Sun / 3) capped at 60.
-        """
-        sun = self.subject.sun
-        moon = self.subject.moon
-        if not sun or not moon: return 0.0
-        
-        # Arc distance from Sun to Moon (Waxing)
-        dist = moon.abs_pos - sun.abs_pos
-        if dist < 0: dist += 360
-        
-        # 0-180 (Waxing), 180-360 (Waning)
-        is_waxing = dist < 180
-        
-        # Base Paksha Bala for Moon
-        # Formula: (dist / 3) for Moon
-        moon_paksha = dist / 3.0
-        if moon_paksha > 60: moon_paksha = 120 - moon_paksha # Decreases after Full Moon
-        
-        benefics = ["Jupiter", "Venus", "Moon", "Mercury"]
-        malefics = ["Sun", "Mars", "Saturn"]
-        
-        # Simple mapping: benefics like waxing, malefics like waning
-        if planet.name in benefics:
-            return moon_paksha
-        else:
-            return 60.0 - moon_paksha
-
-    def _calculate_chesta_bala(self, planet: KerykeionPointModel) -> float:
-        """
-        Motional strength based on planetary speed.
-        Slower planets (closer to retrograde) are stronger.
-        """
-        if planet.name in ["Sun", "Moon"]:
-            return 0.0
-            
-        if planet.retrograde:
-            return 60.0
-            
-        # Simplified speed ratio
-        # Average speeds in degrees/day
-        avg_speeds = {
-            "Mars": 0.524,
-            "Mercury": 1.383,
-            "Jupiter": 0.083,
-            "Venus": 1.200,
-            "Saturn": 0.033,
-        }
-        
-        avg = avg_speeds.get(planet.name, 1.0)
-        speed = abs(planet.speed) if planet.speed is not None else avg
-        
-        # Ratio of actual speed to average
-        ratio = speed / avg
-        if ratio > 2.0: ratio = 2.0
-        
-        # Slower is stronger: 60 at 0 speed, 0 at 2x avg speed
-        chesta = (2.0 - ratio) * 30.0
-        return max(0.0, min(60.0, chesta))
-
-    def _calculate_drik_bala(self, planet: KerykeionPointModel) -> float:
-        """
-        Aspectual strength (Drik Bala).
-        Continuous arc-based calculation.
-        """
-        drik_bala = 0.0
-        
-        benefics = ["Jupiter", "Venus"]
-        malefics = ["Sun", "Mars", "Saturn"]
-        
-        for other_name in self.TRADITIONAL_PLANETS:
-            if other_name == planet.name: continue
-            
-            other = self.subject[other_name.lower()]
-            if not other: continue
-            
-            # Distance from other planet to target planet
-            dist = planet.abs_pos - other.abs_pos
-            if dist < 0: dist += 360
-            
-            # Vedic aspects are mostly focused on 180° (Opposition)
-            # Full strength at 180°, decreasing to 0 at 30°/300°
-            # Simple linear model for all traditional aspects
-            
-            aspect_strength = 0.0
-            if 30 <= dist <= 180:
-                aspect_strength = (dist - 30) / 150.0 * 60.0
-            elif 180 < dist <= 300:
-                aspect_strength = (300 - dist) / 120.0 * 60.0
-                
-            # Special aspects (Drishti) for Mars, Jupiter, Saturn
-            if other_name == "Mars" and (dist == 90 or dist == 210): # 4th and 8th
-                 aspect_strength = 60.0
-            elif other_name == "Jupiter" and (dist == 120 or dist == 240): # 5th and 9th
-                 aspect_strength = 60.0
-            elif other_name == "Saturn" and (dist == 60 or dist == 270): # 3rd and 10th
-                 aspect_strength = 60.0
-
-            # Weight by nature of aspecting planet
-            if other_name in benefics:
-                drik_bala += (aspect_strength / 4.0) # Benefic aspect adds 1/4th
-            elif other_name in malefics:
-                drik_bala -= (aspect_strength / 4.0) # Malefic aspect subtracts 1/4th
-                
-        return drik_bala
