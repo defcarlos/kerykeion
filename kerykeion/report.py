@@ -166,6 +166,7 @@ class ReportGenerator:
             self._subject_data_report(self._primary_subject, "Astrological Subject"),
             self._celestial_points_report(self._primary_subject, "Celestial Points"),
             self._nakshatra_positions_report(self._primary_subject),
+            self._shadbala_report(self._primary_subject),
             self._houses_report(self._primary_subject, "Houses"),
             self._lunar_phase_report(self._primary_subject),
             self._panchang_report(self._primary_subject),
@@ -314,6 +315,7 @@ class ReportGenerator:
                 ),
                 self._nakshatra_positions_report(self._primary_subject),
                 self._houses_report(self._primary_subject, f"{self._primary_subject_label()} Houses"),
+                self._shadbala_report(self._primary_subject),
                 self._lunar_phase_report(self._primary_subject),
                 self._panchang_report(self._primary_subject),
                 self._elements_report(),
@@ -609,17 +611,41 @@ class ReportGenerator:
         used_names = set(angles + main_planets + nodes)
         sorted_points.extend([p for p in points if p.name not in used_names])
 
-        celestial_data: List[List[str]] = [["Point", "Sign", "Position", "Speed", "Decl.", "Ret.", "House"]]
+        from kerykeion.settings.vedic_constants import EXALTATION_DEGREES, DEBILITATION_DEGREES
+
+        celestial_data: List[List[str]] = [["Point", "Sign", "Position", "Dignity", "Total (R)", "Speed", "Decl.", "Ret.", "House"]]
         for point in sorted_points:
-            speed_str = f"{point.speed:+.4f}°/d" if point.speed is not None else "N/A"
-            decl_str = f"{point.declination:+.2f}°" if point.declination is not None else "N/A"
+            speed_str = f"{point.speed:+.2f}°/d" if point.speed is not None else "N/A"
+            decl_str = f"{point.declination:+.1f}°" if point.declination is not None else "N/A"
             ret_str = "R" if point.retrograde else "-"
             house_str = point.house.replace("_", " ") if point.house else "-"
+            
+            # Dignity Check
+            dignity = "-"
+            if point.name in EXALTATION_DEGREES:
+                ex_sign, ex_deg = EXALTATION_DEGREES[point.name]
+                if point.sign_num == ex_sign and abs(point.position - ex_deg) < 5.0:
+                    dignity = "Exalted ⬆"
+                
+                deb_sign, deb_deg = DEBILITATION_DEGREES[point.name]
+                if point.sign_num == deb_sign and abs(point.position - deb_deg) < 5.0:
+                    dignity = "Debilitated ⬇"
+
+            # Shadbala total (Rupas)
+            shadbala_r = "-"
+            shadbala = getattr(subject, "shadbala", None)
+            if shadbala:
+                p_attr = getattr(shadbala, point.name.lower(), None)
+                if p_attr:
+                    shadbala_r = f"{p_attr.total_rupas:.2f}"
+
             celestial_data.append(
                 [
                     point.name.replace("_", " "),
                     f"{point.sign} {point.emoji}",
                     f"{point.position:.2f}°",
+                    dignity,
+                    shadbala_r,
                     speed_str,
                     decl_str,
                     ret_str,
@@ -719,6 +745,48 @@ class ReportGenerator:
             ["Total", total, "100%"],
         ]
         return AsciiTable(quality_data, title="Quality Distribution").table
+
+    def _shadbala_report(self, subject: SubjectLike) -> str:
+        shadbala = getattr(subject, "shadbala", None)
+        if not shadbala:
+            return ""
+
+        table_data = [
+            ["Planet", "Sthana", "Dig", "Kala", "Chesta", "Nais.", "Drik", "Total (V)", "Total (R)", "Strong?"]
+        ]
+
+        scores = []
+        planets = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"]
+        for p_name in planets:
+            p = getattr(shadbala, p_name)
+            scores.append((p_name.capitalize(), p.total_rupas))
+            
+            table_data.append(
+                [
+                    p_name.capitalize(),
+                    f"{p.sthana_bala:.1f}",
+                    f"{p.dig_bala:.1f}",
+                    f"{p.kala_bala:.1f}",
+                    f"{p.chesta_bala:.1f}",
+                    f"{p.naisargika_bala:.1f}",
+                    f"{p.drik_bala:.1f}",
+                    f"{p.total_virupas:.1f}",
+                    f"{p.total_rupas:.2f}",
+                    "Yes" if p.is_strong else "No",
+                ]
+            )
+        
+        scores.sort(key=lambda x: x[1], reverse=True)
+        strongest = scores[0][0]
+        
+        report = AsciiTable(table_data, title="Shadbala (Six-fold Strength)").table
+        summary = f"\nStrongest Planet (Lord of the Geniture): {strongest}"
+        
+        # Check for Yudha (War) victims (simplified check for negative adjustments)
+        # Note: We'd need to expose yudha_bala explicitly in the model for a perfect check, 
+        # but for now we'll stick to this summary.
+        
+        return f"{report}\n{summary}"
 
     def _active_configuration_report(self) -> str:
         if not self._active_points and not self._active_aspects:
