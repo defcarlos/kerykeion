@@ -70,7 +70,11 @@ class ShadbalaFactory:
             drik = self._calculate_drik_bala(planet_data)
 
             total_virupas = sthana + dig + kala + chesta + naisargika + drik
+            total_rupas = total_virupas / 60.0
             
+            min_req = SHADBALA_MINIMUM_REQUIREMENTS.get(planet_name, 5.0)
+            is_strong = total_rupas >= min_req
+
             planetary_scores[planet_name.lower()] = PlanetaryShadbalaModel(
                 sthana_bala=round(sthana, 2),
                 dig_bala=round(dig, 2),
@@ -79,7 +83,9 @@ class ShadbalaFactory:
                 naisargika_bala=round(naisargika, 2),
                 drik_bala=round(drik, 2),
                 total_virupas=round(total_virupas, 2),
-                total_rupas=round(total_virupas / 60.0, 2),
+                total_rupas=round(total_rupas, 2),
+                minimum_required=min_req,
+                is_strong=is_strong,
             )
 
         return ShadbalaModel(**planetary_scores)
