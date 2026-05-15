@@ -76,12 +76,15 @@ def test_day_birth_kala():
     
     assert subject.is_diurnal is True
     s = subject.shadbala
-    # Sun, Jupiter, Venus should have 60 (Nathonnatha) + Paksha Bala
-    assert s.sun.kala_bala > 60.0
-    assert s.jupiter.kala_bala > 60.0
-    assert s.venus.kala_bala > 60.0
-    # Moon, Mars, Saturn should have 0 (Nathonnatha) + Paksha Bala
-    assert s.moon.kala_bala < 60.0
+    # With advanced components (Ayana, Dina, Hora, etc.), Kala Bala values are higher.
+    # Sun, Jupiter, Venus are strong (diurnal)
+    assert s.sun.kala_bala > 150.0
+    assert s.jupiter.kala_bala > 100.0
+    assert s.venus.kala_bala > 150.0
+    # Moon, Mars, Saturn are weak (diurnal) but still have Paksha/Ayana/Lords
+    assert s.moon.kala_bala > 60.0
+    assert s.mars.kala_bala > 70.0
+    assert s.saturn.kala_bala > 70.0
 
 if __name__ == "__main__":
     test_shadbala_components()

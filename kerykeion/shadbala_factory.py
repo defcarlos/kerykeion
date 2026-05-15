@@ -55,6 +55,7 @@ class ShadbalaFactory:
         Calculate full Shadbala for the subject.
         """
         planetary_scores = {}
+        base_total_virupas = {}
 
         for planet_name in self.TRADITIONAL_PLANETS:
             planet_data = self.subject[planet_name.lower()]
@@ -70,25 +71,96 @@ class ShadbalaFactory:
             drik = self._calculate_drik_bala(planet_data)
 
             total_virupas = sthana + dig + kala + chesta + naisargika + drik
-            total_rupas = total_virupas / 60.0
-            
-            min_req = SHADBALA_MINIMUM_REQUIREMENTS.get(planet_name, 5.0)
-            is_strong = total_rupas >= min_req
+            base_total_virupas[planet_name] = total_virupas
 
-            planetary_scores[planet_name.lower()] = PlanetaryShadbalaModel(
-                sthana_bala=round(sthana, 2),
-                dig_bala=round(dig, 2),
-                kala_bala=round(kala, 2),
-                chesta_bala=round(chesta, 2),
-                naisargika_bala=round(naisargika, 2),
-                drik_bala=round(drik, 2),
-                total_virupas=round(total_virupas, 2),
-                total_rupas=round(total_rupas, 2),
+            planetary_scores[planet_name.lower()] = {
+                "sthana_bala": round(sthana, 2),
+                "dig_bala": round(dig, 2),
+                "kala_bala": round(kala, 2),
+                "chesta_bala": round(chesta, 2),
+                "naisargika_bala": round(naisargika, 2),
+                "drik_bala": round(drik, 2),
+            }
+
+        # --- 7. Yudha Bala (Planetary War) ---
+        # Final adjustment based on planetary wars
+        yudha_adjustments = self._calculate_yudha_bala(base_total_virupas)
+        
+        final_models = {}
+        for p_name, base_scores in planetary_scores.items():
+            cap_name = p_name.capitalize()
+            total_v = base_total_virupas[cap_name] + yudha_adjustments.get(cap_name, 0.0)
+            total_r = total_v / 60.0
+            
+            min_req = SHADBALA_MINIMUM_REQUIREMENTS.get(cap_name, 5.0)
+            is_strong = total_r >= min_req
+            
+            final_models[p_name] = PlanetaryShadbalaModel(
+                **base_scores,
+                total_virupas=round(total_v, 2),
+                total_rupas=round(total_r, 2),
                 minimum_required=min_req,
                 is_strong=is_strong,
             )
 
-        return ShadbalaModel(**planetary_scores)
+        return ShadbalaModel(**final_models)
+
+    def _calculate_yudha_bala(self, base_strengths: Dict[str, float]) -> Dict[str, float]:
+        """
+        Planetary War (Yudha Bala).
+        Only for Mars, Mercury, Jupiter, Venus, and Saturn.
+        Conjunction within 1 degree.
+        """
+        true_planets = ["Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
+        adjustments = {p: 0.0 for p in self.TRADITIONAL_PLANETS}
+        
+        # Fixed classical diameters for Yudha calculation (Raman's standard)
+        diameters = {
+            "Mars": 9.4, "Mercury": 6.6, "Jupiter": 190.4, "Venus": 16.6, "Saturn": 157.8
+        }
+        
+        checked_pairs = set()
+        
+        for p1_name in true_planets:
+            p1 = self.subject[p1_name.lower()]
+            if not p1: continue
+            
+            for p2_name in true_planets:
+                if p1_name == p2_name: continue
+                pair = tuple(sorted((p1_name, p2_name)))
+                if pair in checked_pairs: continue
+                checked_pairs.add(pair)
+                
+                p2 = self.subject[p2_name.lower()]
+                if not p2: continue
+                
+                # Check for conjunction within 1 degree
+                dist = abs(p1.abs_pos - p2.abs_pos)
+                if dist > 180: dist = 360 - dist
+                
+                if dist <= 1.0:
+                    # War detected!
+                    # Victor determination (Raman/Classical): 
+                    # Usually the planet with higher northern declination or larger diameter.
+                    # Standard mathematical transfer: |S1 - S2| / |D1 - D2|
+                    s1, s2 = base_strengths[p1_name], base_strengths[p2_name]
+                    d1, d2 = diameters[p1_name], diameters[p2_name]
+                    
+                    diff_s = abs(s1 - s2)
+                    diff_d = abs(d1 - d2)
+                    
+                    # Transfer amount
+                    transfer = diff_s / (diff_d if diff_d != 0 else 1.0)
+                    
+                    # Determine victor (simplification: larger diameter wins in Raman's system)
+                    if d1 > d2:
+                        adjustments[p1_name] += transfer
+                        adjustments[p2_name] -= transfer
+                    else:
+                        adjustments[p2_name] += transfer
+                        adjustments[p1_name] -= transfer
+                        
+        return adjustments
 
     # --- 1. Sthana Bala (Positional Strength) ---
 
@@ -100,8 +172,9 @@ class ShadbalaFactory:
         saptavarga = self._calculate_saptavarga_bala(planet)
         kendradi = self._calculate_kendradi_bala(planet)
         ojha = self._calculate_ojha_bala(planet)
+        drekkana = self._calculate_drekkana_bala(planet)
         
-        return ucha + saptavarga + kendradi + ojha
+        return ucha + saptavarga + kendradi + ojha + drekkana
 
     def _calculate_ucha_bala(self, planet: KerykeionPointModel) -> float:
         """
@@ -208,6 +281,25 @@ class ShadbalaFactory:
                 
         return total_ojha
 
+    def _calculate_drekkana_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Drekkana Bala (Positional strength based on decan and gender).
+        Male planets (Sun, Mars, Jupiter) in 1st Drekkana (0-10) = 15
+        Hermaphrodite (Mercury, Saturn) in 2nd Drekkana (10-20) = 15
+        Female (Moon, Venus) in 3rd Drekkana (20-30) = 15
+        """
+        male_planets = ["Sun", "Mars", "Jupiter"]
+        female_planets = ["Moon", "Venus"]
+        hermaphrodite_planets = ["Mercury", "Saturn"]
+        
+        decan = int(planet.position // 10)
+        
+        if decan == 0 and planet.name in male_planets: return 15.0
+        if decan == 1 and planet.name in hermaphrodite_planets: return 15.0
+        if decan == 2 and planet.name in female_planets: return 15.0
+        
+        return 0.0
+
     # --- 2. Dig Bala (Directional Strength) ---
 
     def _calculate_dig_bala(self, planet: KerykeionPointModel) -> float:
@@ -229,10 +321,21 @@ class ShadbalaFactory:
     def _calculate_kala_bala(self, planet: KerykeionPointModel) -> float:
         """
         Temporal strength (Kala Bala).
+        Composed of: Nathonnatha, Paksha, Tribhaga, Varsha, Maasa, Dina, Hora, and Ayana Bala.
         """
+        # 1. Nathonnatha Bala (Day/Night strength)
         nathonnatha = self._calculate_nathonnatha_bala(planet)
+        
+        # 2. Paksha Bala (Moon phase strength)
         paksha = self._calculate_paksha_bala(planet)
-        return nathonnatha + paksha
+        
+        # 3. Time Lords (Dina, Hora, Varsha, Maasa)
+        time_lords_bala = self._calculate_time_lords_bala(planet)
+        
+        # 4. Ayana Bala (Equinoctial strength)
+        ayana = self._calculate_ayana_bala(planet)
+        
+        return nathonnatha + paksha + time_lords_bala + ayana
 
     def _calculate_nathonnatha_bala(self, planet: KerykeionPointModel) -> float:
         """
@@ -261,6 +364,110 @@ class ShadbalaFactory:
         
         if planet.name in ["Jupiter", "Venus", "Moon", "Mercury"]: return moon_paksha
         return 60.0 - moon_paksha
+
+    def _calculate_time_lords_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Combined strength from Varsha, Maasa, Dina, and Hora lords.
+        """
+        total = 0.0
+        
+        # 1. Dina Bala (Day Lord) - 45 Virupas
+        if planet.name == self.subject.panchang.vara:
+            total += 45.0
+            
+        # 2. Hora Bala (Hour Lord) - 60 Virupas
+        hora_lord = self._get_hora_lord()
+        if planet.name == hora_lord:
+            total += 60.0
+            
+        # 3. Varsha (Year) and Maasa (Month) Lords
+        # These require Ahargana calculation. 
+        # Using a simplified cyclic approach for now based on Raman's tables.
+        v_lord, m_lord = self._get_varsha_maasa_lords()
+        if planet.name == v_lord: total += 15.0
+        if planet.name == m_lord: total += 30.0
+            
+        return total
+
+    def _get_hora_lord(self) -> str:
+        """
+        Calculates the lord of the planetary hour.
+        """
+        from kerykeion.panchang_utils import get_sunrise_sunset
+        
+        jd = self.subject.julian_day
+        lat, lng = self.subject.lat, self.subject.lng
+        
+        # Get sunrise for the current day
+        sr, _ = get_sunrise_sunset(jd, lat, lng)
+        
+        # If born before sunrise, use previous day's sunrise
+        if jd < sr:
+            sr, _ = get_sunrise_sunset(jd - 1.0, lat, lng)
+            
+        # 1 planetary hour = 1/24th of a day (approx 1 hour)
+        # Parashari sequence: Sun, Venus, Mercury, Moon, Saturn, Jupiter, Mars
+        sequence = ["Sun", "Venus", "Mercury", "Moon", "Saturn", "Jupiter", "Mars"]
+        
+        # Find start lord (Day Lord)
+        day_lord = self.subject.panchang.vara
+        start_idx = sequence.index(day_lord) if day_lord in sequence else 0
+        
+        hours_since_sunrise = (jd - sr) * 24.0
+        hora_idx = (start_idx + int(hours_since_sunrise)) % 7
+        
+        return sequence[hora_idx]
+
+    def _get_varsha_maasa_lords(self) -> Tuple[str, str]:
+        """
+        Calculates Varsha and Maasa lords using Ahargana approximation.
+        Epoch: Jan 1, 1900 (JD 2415020.5)
+        """
+        # Days elapsed since epoch
+        ahargana = self.subject.julian_day - 2415020.5
+        
+        # Varsha Lord (Every 360 days, jumps 3 weekdays)
+        v_idx = (int(ahargana // 360) * 3) % 7
+        
+        # Maasa Lord (Every 30 days, jumps 2 weekdays)
+        m_idx = (int(ahargana // 30) * 2) % 7
+        
+        # Weekday mapping (0=Sun, 1=Moon, ..., 6=Sat)
+        days = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
+        
+        # Jan 1, 1900 was a Monday (index 1)
+        v_lord = days[(1 + v_idx) % 7]
+        m_lord = days[(1 + m_idx) % 7]
+        
+        return v_lord, m_lord
+
+    def _calculate_ayana_bala(self, planet: KerykeionPointModel) -> float:
+        """
+        Ayana Bala (Equinoctial strength based on declination).
+        (24 + Declination) * 1.25 for North-strong planets.
+        """
+        # North-strong: Sun, Mars, Jupiter, Venus
+        # South-strong: Moon, Saturn
+        # Both: Mercury
+        
+        declination = planet.declination if planet.declination is not None else 0.0
+        
+        # Adjust declination sign based on planet's preference
+        if planet.name in ["Moon", "Saturn"]:
+            effective_dec = -declination
+        elif planet.name == "Mercury":
+            effective_dec = abs(declination)
+        else:
+            effective_dec = declination
+            
+        # Raman's formula approximation: (24 + eff_dec) * 1.25
+        # This yields 30 at 0 dec, 60 at 24 North, 0 at 24 South (for North-strong)
+        bala = (24.0 + effective_dec) * 1.25
+        
+        if planet.name == "Sun":
+            bala *= 2.0 # Sun's Ayana Bala is doubled
+            
+        return max(0.0, bala)
 
     # --- 4. Chesta Bala (Motional Strength) ---
 
