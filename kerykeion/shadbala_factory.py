@@ -138,6 +138,19 @@ class ShadbalaFactory:
             if not p_varga: continue
             
             if v_type == "D1":
+                # Check for Exaltation
+                ex_sign, ex_deg = EXALTATION_DEGREES.get(planet.name, (0, 0))
+                if p_varga.sign_num == ex_sign and abs(p_varga.position - ex_deg) < 1.0:
+                    total_saptavarga += SAPTAVARGA_WEIGHTS["Exaltation"]
+                    continue
+                
+                # Check for Debilitation
+                deb_sign, deb_deg = DEBILITATION_DEGREES.get(planet.name, (0, 0))
+                if p_varga.sign_num == deb_sign and abs(p_varga.position - deb_deg) < 1.0:
+                    total_saptavarga += SAPTAVARGA_WEIGHTS["Debilitation"]
+                    continue
+
+                # Check for Moolatrikona
                 mt = MOOLATRIKONA_RANGES.get(planet.name)
                 if mt and p_varga.sign_num == mt[0] and mt[1] <= p_varga.position <= mt[2]:
                     total_saptavarga += SAPTAVARGA_WEIGHTS["Moolatrikona"]
