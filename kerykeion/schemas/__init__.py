@@ -67,6 +67,7 @@ from .kr_models import (
 )
 from .chart_template_model import ChartTemplateModel
 from .settings_models import KerykeionSettingsModel
+from .vedic_settings_models import VedicChartConfigModel
 
 __all__ = [
     # Exceptions
@@ -74,6 +75,7 @@ __all__ = [
     # Settings and Chart Types
     "ChartTemplateModel",
     "KerykeionSettingsModel",
+    "VedicChartConfigModel",
     # Main Literal Types (from kr_literals)
     "ZodiacType",
     "Sign",
