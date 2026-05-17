@@ -70,41 +70,41 @@ class VedicGeometryUtils:
     def get_north_indian_house_polygons(width: float, height: float, padding: float = 0) -> list[list[tuple[float, float]]]:
         """
         Returns the polygon points for each of the 12 houses in a North Indian chart.
+        Angular houses (1, 4, 7, 10) are diamonds.
+        Other houses (2, 3, 5, 6, 8, 9, 11, 12) are corner triangles.
         """
         w = width - 2 * padding
         h = height - 2 * padding
         x0, y0 = padding, padding
         x1, y1 = x0 + w, y0 + h
         xm, ym = x0 + w / 2, y0 + h / 2
-        
+
         # Intersections of diagonals and diamond
-        # M1 (top-left), M2 (bottom-left), M3 (bottom-right), M4 (top-right)
         m1 = (x0 + w / 4, y0 + h / 4)
         m2 = (x0 + w / 4, y0 + 3 * h / 4)
         m3 = (x0 + 3 * w / 4, y0 + 3 * h / 4)
         m4 = (x0 + 3 * w / 4, y0 + h / 4)
-        
-        # Nodes
+
+        # Main points
         a, b, c = (x0, y0), (xm, y0), (x1, y0)
         d, e, f = (x0, ym), (xm, ym), (x1, ym)
         g, h, i = (x0, y1), (xm, y1), (x1, y1)
-        
+
         # 12 Houses
         return [
-            [b, e, d],      # H1
-            [a, b, m1],     # H2
-            [a, d, m1],     # H3
-            [d, e, h],      # H4
-            [g, d, m2],     # H5
-            [g, h, m2],     # H6
-            [h, e, f],      # H7
-            [i, h, m3],     # H8
-            [i, f, m3],     # H9
-            [f, e, b],      # H10
-            [c, f, m4],     # H11
-            [c, b, m4]      # H12
+            [b, m1, e, m4],  # H1 (Top Diamond)
+            [a, b, m1],      # H2 (Top-Left Triangle)
+            [a, d, m1],      # H3 (Left-Top Triangle)
+            [d, m1, e, m2],  # H4 (Left Diamond)
+            [g, d, m2],      # H5 (Left-Bottom Triangle)
+            [g, h, m2],      # H6 (Bottom-Left Triangle)
+            [h, m2, e, m3],  # H7 (Bottom Diamond)
+            [i, h, m3],      # H8 (Bottom-Right Triangle)
+            [i, f, m3],      # H9 (Right-Bottom Triangle)
+            [f, m3, e, m4],  # H10 (Right Diamond)
+            [c, f, m4],      # H11 (Right-Top Triangle)
+            [c, b, m4]       # H12 (Top-Right Triangle)
         ]
-
     @staticmethod
     def get_south_indian_sign_polygons(width: float, height: float, padding: float = 0) -> list[list[tuple[float, float]]]:
         """
@@ -114,12 +114,12 @@ class VedicGeometryUtils:
         h = height - 2 * padding
         x0, y0 = padding, padding
         cw, ch = w / 4, h / 4
-        
+
         def get_box(col, row):
             bx0, by0 = x0 + col * cw, y0 + row * ch
             bx1, by1 = bx0 + cw, by0 + ch
             return [(bx0, by0), (bx1, by0), (bx1, by1), (bx0, by1)]
-            
+
         # Signs 1-12 (Aries to Pisces)
         return [
             get_box(1, 0), get_box(2, 0), get_box(3, 0), # Ari, Tau, Gem
@@ -127,6 +127,89 @@ class VedicGeometryUtils:
             get_box(2, 3), get_box(1, 3), get_box(0, 3), # Lib, Sco, Sag
             get_box(0, 2), get_box(0, 1), get_box(0, 0)  # Cap, Aqu, Pis
         ]
+
+    @staticmethod
+    def get_sudarshana_rings(width: float, height: float, padding: float = 0) -> list[float]:
+        """
+        Returns the radii for the 4 concentric circles of the Sudarshana Chakra.
+        """
+        main_radius = min(width, height) / 2 - padding
+        return [
+            0.3 * main_radius,
+            0.5 * main_radius,
+            0.7 * main_radius,
+            0.9 * main_radius
+        ]
+
+    @staticmethod
+    def get_sudarshana_spokes(width: float, height: float, padding: float = 0) -> list[tuple[float, float, float, float]]:
+        """
+        Returns the (x1, y1, x2, y2) coordinates for the 12 dividing lines.
+        """
+        import math
+        xm, ym = width / 2, height / 2
+        radii = VedicGeometryUtils.get_sudarshana_rings(width, height, padding)
+        r_inner = radii[0]
+        r_outer = radii[3]
+
+        spokes = []
+        for i in range(12):
+            # Start at 90 degrees (top) and move CCW
+            angle_rad = math.radians(90 + i * 30)
+            x1 = xm + r_inner * math.cos(angle_rad)
+            y1 = ym - r_inner * math.sin(angle_rad)
+            x2 = xm + r_outer * math.cos(angle_rad)
+            y2 = ym - r_outer * math.sin(angle_rad)
+            spokes.append((x1, y1, x2, y2))
+
+        return spokes
+
+    @staticmethod
+    def get_sudarshana_segment_centers(width: float, height: float, padding: float, ring_index: int) -> list[tuple[float, float]]:
+        """
+        Returns the center coordinates for the 12 segments of a specific ring (0, 1, 2).
+        """
+        import math
+        xm, ym = width / 2, height / 2
+        radii = VedicGeometryUtils.get_sudarshana_rings(width, height, padding)
+        r_mid = (radii[ring_index] + radii[ring_index + 1]) / 2
+
+        centers = []
+        for i in range(12):
+            # Center of the 30-degree slice
+            angle_rad = math.radians(90 + i * 30 + 15)
+            x = xm + r_mid * math.cos(angle_rad)
+            y = ym - r_mid * math.sin(angle_rad)
+            centers.append((x, y))
+
+        return centers
+
+    @staticmethod
+    def get_sudarshana_segment_polygon(width: float, height: float, padding: float, ring_index: int, house_index: int) -> list[tuple[float, float]]:
+        """
+        Returns the points for an arc-based polygon representing a segment.
+        Actually, for SVG polygon points, we'll approximate the arc with a few points.
+        """
+        import math
+        xm, ym = width / 2, height / 2
+        radii = VedicGeometryUtils.get_sudarshana_rings(width, height, padding)
+        r_in = radii[ring_index]
+        r_out = radii[ring_index + 1]
+
+        start_angle = 90 + house_index * 30
+        end_angle = start_angle + 30
+
+        points = []
+        # Outer arc
+        for a in range(start_angle, end_angle + 1, 5):
+            rad = math.radians(a)
+            points.append((xm + r_out * math.cos(rad), ym - r_out * math.sin(rad)))
+        # Inner arc (reversed)
+        for a in range(end_angle, start_angle - 1, -5):
+            rad = math.radians(a)
+            points.append((xm + r_in * math.cos(rad), ym - r_in * math.sin(rad)))
+
+        return points
 
     @staticmethod
     def get_north_indian_house_centers(width: float, height: float, padding: float = 0) -> list[tuple[float, float]]:

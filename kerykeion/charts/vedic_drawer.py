@@ -56,7 +56,7 @@ class BaseVedicDrawer(ABC):
             "Leo": "Leo", "Virgo": "Virgo", "Libra": "Libra", "Scorpio": "Scorpio",
             "Sagittarius": "Sagittarius", "Capricorn": "Capricorn", "Aquarius": "Aquarius", "Pisces": "Pisces"
         }
-        
+
         self.sign_names = [
             "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
             "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
@@ -163,9 +163,9 @@ class BaseVedicDrawer(ABC):
         symbol_id = self.point_to_symbol.get(name, name)
         offset = -12 * scale
         color = f"var(--kerykeion-chart-color-zodiac-icon-{sign_idx})"
-        
+
         style = f"fill: {color}; fill-opacity: {opacity};"
-        
+
         return (
             f'  <g transform="translate({x + offset}, {y + offset}) scale({scale})" style="{style}">\n'
             f'    <use xlink:href="#{symbol_id}" />\n'
@@ -181,6 +181,19 @@ class BaseVedicDrawer(ABC):
         }
         return house_map.get(house_name, 1)
 
+    def _get_reference_sign_num(self, perspective: str = None) -> int:
+        """
+        Returns the sign number (0-11) for the requested perspective.
+        """
+        p = perspective or self.config.perspective
+        if p == "Chandra":
+            return self.subject.moon.sign_num
+        elif p == "Surya":
+            return self.subject.sun.sign_num
+        else:
+            # Lagna
+            return self.subject.ascendant.sign_num
+
 class NorthIndianDrawer(BaseVedicDrawer):
     """
     Drawer for North Indian (Diamond) style Vedic charts.
@@ -191,15 +204,15 @@ class NorthIndianDrawer(BaseVedicDrawer):
         centers = VedicGeometryUtils.get_north_indian_house_centers(w, h, p)
         polygons = VedicGeometryUtils.get_north_indian_house_polygons(w, h, p)
 
-        # Calculate signs in each house
-        lagna_sign_num = self.subject.ascendant.sign_num + 1
-        house_sign_nums = [(lagna_sign_num + i - 1) % 12 + 1 for i in range(12)]
+        # Calculate signs in each house based on perspective
+        ref_sign_num = self._get_reference_sign_num()
+        house_sign_nums = [(ref_sign_num + i) % 12 + 1 for i in range(12)]
 
         svg = self._get_svg_header()
-        
+
         # Draw background fills
         svg += self._draw_backgrounds(polygons, house_sign_nums)
-        
+
         # Draw grid
         svg += self._draw_grid(paths)
 
@@ -220,15 +233,18 @@ class NorthIndianDrawer(BaseVedicDrawer):
                 hx, hy = centers[i]
                 svg += self._draw_sign_glyph(house_sign_nums[i], hx, hy + 22, scale=0.5)
 
-        # Group planets by house
-        houses: Dict[int, List[str]] = {i: [] for i in range(1, 13)}
+        # Group planets by relative house
+        houses_planets: Dict[int, List[str]] = {i: [] for i in range(1, 13)}
         for point_name in self.chart_data.active_points:
-            if point_name == "Ascendant": continue
+            if point_name == "Ascendant":
+                continue
             point = self.subject.get(point_name.lower())
-            if point and point.house:
-                houses[self._get_house_num(point.house)].append(point_name)
+            if point:
+                # Calculate house relative to reference sign
+                rel_house = (point.sign_num - ref_sign_num) % 12 + 1
+                houses_planets[rel_house].append(point_name)
 
-        for house_num, points in houses.items():
+        for house_num, points in houses_planets.items():
             hx, hy = centers[house_num - 1]
             for i, p_name in enumerate(points):
                 px = hx + (i % 2 - 0.5) * 32
@@ -249,17 +265,17 @@ class SouthIndianDrawer(BaseVedicDrawer):
         polygons = VedicGeometryUtils.get_south_indian_sign_polygons(w, h, p)
 
         svg = self._get_svg_header()
-        
+
         # Draw background fills (Signs 1-12 are fixed in South Indian)
         svg += self._draw_backgrounds(polygons, list(range(1, 13)))
-        
+
         # Draw grid
         svg += self._draw_grid(paths)
 
-        # Signs are fixed: Aries is index 0
-        lagna_sign_num = self.subject.ascendant.sign_num + 1
-        lx, ly = centers[lagna_sign_num - 1]
-        
+        # Mark perspective "Lagna"
+        ref_sign_num = self._get_reference_sign_num()
+        lx, ly = centers[ref_sign_num]
+
         lagna_style = (
             "fill: var(--kerykeion-chart-color-first-house); "
             "font-size: 22px; "
@@ -271,7 +287,6 @@ class SouthIndianDrawer(BaseVedicDrawer):
         # Draw educational sign glyphs in corners
         for i in range(12):
             sx, sy = centers[i]
-            # Offset to top-left of the box (box is cw x ch)
             cw, ch = (w - 2 * p) / 4, (h - 2 * p) / 4
             bx, by = sx - cw / 2 + 15, sy - ch / 2 + 15
             svg += self._draw_sign_glyph(i + 1, bx, by, scale=0.3, opacity=0.6)
@@ -279,7 +294,8 @@ class SouthIndianDrawer(BaseVedicDrawer):
         # Place planets
         signs_planets: Dict[int, List[str]] = {i: [] for i in range(1, 13)}
         for point_name in self.chart_data.active_points:
-            if point_name == "Ascendant": continue
+            if point_name == "Ascendant":
+                continue
             point = self.subject.get(point_name.lower())
             if point:
                 signs_planets[point.sign_num + 1].append(point_name)
@@ -290,6 +306,79 @@ class SouthIndianDrawer(BaseVedicDrawer):
                 px = sx + (i % 2 - 0.5) * 38
                 py = sy + (i // 2 - 0.5) * 38
                 svg += self._draw_point(p_name, px, py)
+
+        svg += self._get_svg_footer()
+        return svg
+
+class SudarshanaDrawer(BaseVedicDrawer):
+    """
+    Drawer for Sudarshana Chakra (Triple Wheel).
+    Inner: Lagna, Middle: Chandra, Outer: Surya.
+    """
+    def generate_svg_string(self) -> str:
+        w, h, p = self.config.width, self.config.height, self.config.padding
+        xm, ym = w / 2, h / 2
+        radii = VedicGeometryUtils.get_sudarshana_rings(w, h, p)
+
+        svg = self._get_svg_header()
+
+        # Draw background fills for all 36 segments
+        perspectives = ["Lagna", "Chandra", "Surya"]
+        for ring_idx, persp in enumerate(perspectives):
+            ref_sign_num = self._get_reference_sign_num(persp)
+            # All perspectives have 1st house at segment 0 (top CCW)
+            # So segment i contains sign (ref_sign_num + i)
+            house_sign_nums = [(ref_sign_num + i) % 12 + 1 for i in range(12)]
+
+            polygons = [VedicGeometryUtils.get_sudarshana_segment_polygon(w, h, p, ring_idx, i) for i in range(12)]
+            svg += self._draw_backgrounds(polygons, house_sign_nums)
+
+        # Draw rings
+        svg += f'<g kr:node="Sudarshana_Rings" style="fill: none; stroke: var(--kerykeion-chart-color-houses-radix-line); stroke-width: {self.config.line_width}px;">\n'
+        for r in radii:
+            svg += f'  <circle cx="{xm}" cy="{ym}" r="{r}" />\n'
+        svg += "</g>\n"
+
+        # Draw spokes
+        spokes = VedicGeometryUtils.get_sudarshana_spokes(w, h, p)
+        svg += self._draw_grid([f"M {s[0]} {s[1]} L {s[2]} {s[3]}" for s in spokes])
+
+        # Draw identifying labels
+        label_style = "fill: var(--kerykeion-chart-color-paper-0); font-size: 10px; font-family: sans-serif; text-anchor: middle;"
+        ring_names = ["Lagna", "Chandra", "Surya"]
+        for i, name in enumerate(ring_names):
+            # Place label in the center of the 1st segment of the ring
+            centers = VedicGeometryUtils.get_sudarshana_segment_centers(w, h, p, i)
+            cx, cy = centers[0]
+            svg += f'  <text x="{cx}" y="{cy - 25}" style="{label_style}">{name}</text>\n'
+
+        # Place planets and sign glyphs for each ring
+        for ring_idx, persp in enumerate(perspectives):
+            ref_sign_num = self._get_reference_sign_num(persp)
+            centers = VedicGeometryUtils.get_sudarshana_segment_centers(w, h, p, ring_idx)
+
+            # Draw sign glyphs in each segment
+            for i in range(12):
+                sx, sy = centers[i]
+                sign_num = (ref_sign_num + i) % 12 + 1
+                svg += self._draw_sign_glyph(sign_num, sx, sy + 25, scale=0.3, opacity=0.8)
+
+            # Group planets
+            house_planets: Dict[int, List[str]] = {i: [] for i in range(1, 13)}
+            for point_name in self.chart_data.active_points:
+                if point_name == "Ascendant":
+                    continue
+                point = self.subject.get(point_name.lower())
+                if point:
+                    rel_house = (point.sign_num - ref_sign_num) % 12 + 1
+                    house_planets[rel_house].append(point_name)
+
+            for house_num, points in house_planets.items():
+                cx, cy = centers[house_num - 1]
+                for i, p_name in enumerate(points):
+                    px = cx + (i % 2 - 0.5) * 28
+                    py = cy + (i // 2 - 0.5) * 28
+                    svg += self._draw_point(p_name, px, py, scale=0.8)
 
         svg += self._get_svg_footer()
         return svg

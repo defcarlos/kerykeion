@@ -8,6 +8,6 @@ including standard Western wheels and Vedic-style charts.
 """
 
 from .chart_drawer import ChartDrawer
-from .vedic_drawer import NorthIndianDrawer, SouthIndianDrawer
+from .vedic_drawer import NorthIndianDrawer, SouthIndianDrawer, SudarshanaDrawer
 
-__all__ = ["ChartDrawer", "NorthIndianDrawer", "SouthIndianDrawer"]
+__all__ = ["ChartDrawer", "NorthIndianDrawer", "SouthIndianDrawer", "SudarshanaDrawer"]
