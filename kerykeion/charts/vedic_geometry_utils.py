@@ -34,25 +34,99 @@ class VedicGeometryUtils:
     def get_south_indian_grid_paths(width: float, height: float, padding: float = 0) -> list[str]:
         """
         Generates SVG path strings for the South Indian square-style grid.
+        The center 2x2 area is a single square.
         """
         w = width - 2 * padding
         h = height - 2 * padding
         x0, y0 = padding, padding
+        x1, y1 = x0 + w, y0 + h
+
+        cw, ch = w / 4, h / 4
 
         paths = []
         # Outer border
-        paths.append(f"M {x0} {y0} L {x0 + w} {y0} L {x0 + w} {y0 + h} L {x0} {y0 + h} Z")
+        paths.append(f"M {x0} {y0} L {x1} {y0} L {x1} {y1} L {x0} {y1} Z")
 
-        # Grid lines (4x4)
-        for i in range(1, 4):
-            # Vertical
-            vx = x0 + i * (w / 4)
-            paths.append(f"M {vx} {y0} L {vx} {y0 + h}")
-            # Horizontal
-            hy = y0 + i * (h / 4)
-            paths.append(f"M {x0} {hy} L {x0 + w} {hy}")
+        # Vertical lines
+        # Left internal
+        paths.append(f"M {x0 + cw} {y0} L {x0 + cw} {y1}")
+        # Middle internal (only top and bottom)
+        paths.append(f"M {x0 + 2*cw} {y0} L {x0 + 2*cw} {y0 + ch}")
+        paths.append(f"M {x0 + 2*cw} {y1 - ch} L {x0 + 2*cw} {y1}")
+        # Right internal
+        paths.append(f"M {x0 + 3*cw} {y0} L {x0 + 3*cw} {y1}")
+
+        # Horizontal lines
+        # Top internal
+        paths.append(f"M {x0} {y0 + ch} L {x1} {y0 + ch}")
+        # Middle internal (only left and right)
+        paths.append(f"M {x0} {y0 + 2*ch} L {x0 + cw} {y0 + 2*ch}")
+        paths.append(f"M {x1 - cw} {y0 + 2*ch} L {x1} {y0 + 2*ch}")
+        # Bottom internal
+        paths.append(f"M {x0} {y0 + 3*ch} L {x1} {y0 + 3*ch}")
 
         return paths
+    @staticmethod
+    def get_north_indian_house_polygons(width: float, height: float, padding: float = 0) -> list[list[tuple[float, float]]]:
+        """
+        Returns the polygon points for each of the 12 houses in a North Indian chart.
+        """
+        w = width - 2 * padding
+        h = height - 2 * padding
+        x0, y0 = padding, padding
+        x1, y1 = x0 + w, y0 + h
+        xm, ym = x0 + w / 2, y0 + h / 2
+        
+        # Intersections of diagonals and diamond
+        # M1 (top-left), M2 (bottom-left), M3 (bottom-right), M4 (top-right)
+        m1 = (x0 + w / 4, y0 + h / 4)
+        m2 = (x0 + w / 4, y0 + 3 * h / 4)
+        m3 = (x0 + 3 * w / 4, y0 + 3 * h / 4)
+        m4 = (x0 + 3 * w / 4, y0 + h / 4)
+        
+        # Nodes
+        a, b, c = (x0, y0), (xm, y0), (x1, y0)
+        d, e, f = (x0, ym), (xm, ym), (x1, ym)
+        g, h, i = (x0, y1), (xm, y1), (x1, y1)
+        
+        # 12 Houses
+        return [
+            [b, e, d],      # H1
+            [a, b, m1],     # H2
+            [a, d, m1],     # H3
+            [d, e, h],      # H4
+            [g, d, m2],     # H5
+            [g, h, m2],     # H6
+            [h, e, f],      # H7
+            [i, h, m3],     # H8
+            [i, f, m3],     # H9
+            [f, e, b],      # H10
+            [c, f, m4],     # H11
+            [c, b, m4]      # H12
+        ]
+
+    @staticmethod
+    def get_south_indian_sign_polygons(width: float, height: float, padding: float = 0) -> list[list[tuple[float, float]]]:
+        """
+        Returns the polygon points for each of the 12 sign boxes in a South Indian chart.
+        """
+        w = width - 2 * padding
+        h = height - 2 * padding
+        x0, y0 = padding, padding
+        cw, ch = w / 4, h / 4
+        
+        def get_box(col, row):
+            bx0, by0 = x0 + col * cw, y0 + row * ch
+            bx1, by1 = bx0 + cw, by0 + ch
+            return [(bx0, by0), (bx1, by0), (bx1, by1), (bx0, by1)]
+            
+        # Signs 1-12 (Aries to Pisces)
+        return [
+            get_box(1, 0), get_box(2, 0), get_box(3, 0), # Ari, Tau, Gem
+            get_box(3, 1), get_box(3, 2), get_box(3, 3), # Can, Leo, Vir
+            get_box(2, 3), get_box(1, 3), get_box(0, 3), # Lib, Sco, Sag
+            get_box(0, 2), get_box(0, 1), get_box(0, 0)  # Cap, Aqu, Pis
+        ]
 
     @staticmethod
     def get_north_indian_house_centers(width: float, height: float, padding: float = 0) -> list[tuple[float, float]]:

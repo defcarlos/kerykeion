@@ -54,7 +54,7 @@
     --kerykeion-chart-color-zodiac-transit-ring-1: #ff0000;
     --kerykeion-chart-color-zodiac-transit-ring-2: #0000ff;
     --kerykeion-chart-color-zodiac-transit-ring-3: #0000ff;
-    --kerykeion-chart-color-houses-radix-line: #ff0000;
+    --kerykeion-chart-color-houses-radix-line: #000000;
     --kerykeion-chart-color-houses-transit-line: #0000ff;
     --kerykeion-chart-color-lunar-phase-0: #000000;
     --kerykeion-chart-color-lunar-phase-1: #ffffff;
@@ -156,5 +156,5 @@
     );
 
     /* Other */
-    --kerykeion-chart-color-house-number: #f00;
+    --kerykeion-chart-color-house-number: #000000;
 }
