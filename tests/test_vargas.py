@@ -61,6 +61,23 @@ def test_lennon_vargas():
     d3 = subject.vargas["D3"]
     sun_d3 = d3.points["sun"]
     assert sun_d3.sign == "Tau"
+    
+    # Enrichments (New in v5.13)
+    assert sun_d9.dignity is not None
+    assert sun_d9.sign_lord == "Moon" # Rulers of Cancer
+    assert sun_d9.is_vargottama is False
+    assert sun_d9.is_pushkara is False
+    
+    assert moon_d9.sign_lord == "Mars" # Rulers of Aries
+    assert moon_d9.is_pushkara is False
+    
+    # Check Jupiter (Pushkara Bhaga check)
+    # Jupiter in Sidereal Lahiri is at ~20°54' Aries (close to 21 Ari)
+    # Aries (Fire 0) 21 Ari is in 7th Navamsha (index 6).
+    # 20.9 / 3.33 = 6.27 -> index 6.
+    # So it should be Pushkara!
+    jupiter_d9 = d9.points["jupiter"]
+    assert jupiter_d9.is_pushkara is True
 
 if __name__ == "__main__":
     test_lennon_vargas()

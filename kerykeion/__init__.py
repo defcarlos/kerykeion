@@ -60,6 +60,8 @@ from .moon_phase_details import MoonPhaseDetailsFactory
 from .aspects import AspectsFactory
 from .relationship_score_factory import RelationshipScoreFactory
 from .house_comparison.house_comparison_factory import HouseComparisonFactory
+from .varga_factory import VargaFactory
+from .shadbala_factory import ShadbalaFactory
 
 # =============================================================================
 # VISUALIZATION
@@ -112,6 +114,8 @@ __all__ = [
     "AspectsFactory",
     "RelationshipScoreFactory",
     "HouseComparisonFactory",
+    "VargaFactory",
+    "ShadbalaFactory",
     # Visualization
     "ChartDrawer",
     "ReportGenerator",

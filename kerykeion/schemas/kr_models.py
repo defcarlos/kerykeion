@@ -56,6 +56,11 @@ from kerykeion.schemas.kr_literals import (
     Yoga,
     Karana,
     ReturnType,
+    Dignity,
+    Auspiciousness,
+    Gana,
+    Nadi,
+    NakshatraQuality,
 )
 
 
@@ -413,6 +418,13 @@ class KerykeionPointModel(SubscriptableBaseModel):
     nakshatra_deity: Optional[str] = Field(
         default=None, description="The ruling deity of the Nakshatra."
     )
+    nakshatra_gana: Optional[Gana] = Field(default=None, description="The Gana (nature) of the Nakshatra.")
+    nakshatra_yoni: Optional[str] = Field(default=None, description="The Yoni (animal archetype) of the Nakshatra.")
+    nakshatra_nadi: Optional[Nadi] = Field(default=None, description="The Nadi (humor) of the Nakshatra.")
+    nakshatra_symbol: Optional[str] = Field(default=None, description="The symbol of the Nakshatra.")
+    nakshatra_quality: Optional[NakshatraQuality] = Field(
+        default=None, description="The quality or nature of the Nakshatra."
+    )
 
 
 class TithiModel(SubscriptableBaseModel):
@@ -427,6 +439,8 @@ class TithiModel(SubscriptableBaseModel):
     start_time: Optional[str] = Field(default=None, description="Start time of the Tithi (ISO).")
     end_time: Optional[str] = Field(default=None, description="End time of the Tithi (ISO).")
     description: Optional[str] = Field(default=None, description="A brief description of the Tithi.")
+    status: Optional[Auspiciousness] = Field(default=None, description="Auspiciousness status of the Tithi.")
+    planetary_ruler: Optional[str] = Field(default=None, description="The planetary ruler of the Tithi.")
 
 
 class YogaModel(SubscriptableBaseModel):
@@ -439,6 +453,9 @@ class YogaModel(SubscriptableBaseModel):
     deity: str = Field(description="The ruling deity of the Yoga.")
     start_time: Optional[str] = Field(default=None, description="Start time of the Yoga (ISO).")
     end_time: Optional[str] = Field(default=None, description="End time of the Yoga (ISO).")
+    status: Optional[Auspiciousness] = Field(default=None, description="Auspiciousness status of the Yoga.")
+    description: Optional[str] = Field(default=None, description="A brief description of the Yoga.")
+    planetary_ruler: Optional[str] = Field(default=None, description="The planetary ruler of the Yoga.")
 
 
 class KaranaModel(SubscriptableBaseModel):
@@ -451,6 +468,9 @@ class KaranaModel(SubscriptableBaseModel):
     deity: str = Field(description="The ruling deity of the Karana.")
     start_time: Optional[str] = Field(default=None, description="Start time of the Karana (ISO).")
     end_time: Optional[str] = Field(default=None, description="End time of the Karana (ISO).")
+    status: Optional[Auspiciousness] = Field(default=None, description="Auspiciousness status of the Karana.")
+    description: Optional[str] = Field(default=None, description="A brief description of the Karana.")
+    planetary_ruler: Optional[str] = Field(default=None, description="The planetary ruler of the Karana.")
 
 
 class PanchangModel(SubscriptableBaseModel):
@@ -471,6 +491,9 @@ class PanchangModel(SubscriptableBaseModel):
     vara: str = Field(description="The Weekday (Vara).")
     vara_start_time: Optional[str] = Field(default=None, description="Start time of the Vara (Vedic Sunrise) (ISO).")
     vara_end_time: Optional[str] = Field(default=None, description="End time of the Vara (Next Vedic Sunrise) (ISO).")
+    is_waxing: Optional[bool] = Field(
+        default=None, description="True if the Moon is waxing (Shukla Paksha), False if waning (Krishna Paksha)."
+    )
 
 
 class VargaPointModel(KerykeionPointModel):
@@ -479,6 +502,14 @@ class VargaPointModel(KerykeionPointModel):
     """
 
     varga_type: str = Field(description="The type of Varga chart (e.g., D9, D2).")
+    dignity: Optional[Dignity] = Field(default=None, description="Planetary dignity in the divisional chart.")
+    is_vargottama: Optional[bool] = Field(
+        default=None, description="True if the planet is in the same sign as in the D1 (Rasi) chart."
+    )
+    sign_lord: Optional[str] = Field(default=None, description="The traditional ruler of the sign in this varga.")
+    is_pushkara: Optional[bool] = Field(
+        default=None, description="True if the point falls in a Pushkara (highly auspicious) degree."
+    )
 
 
 class VargaChartModel(SubscriptableBaseModel):
@@ -1225,3 +1256,13 @@ class DualChartDataModel(SubscriptableBaseModel):
 
 # Union type for all chart data models
 ChartDataModel = Union[SingleChartDataModel, DualChartDataModel]
+
+
+# Rebuild models to resolve forward references and late-bound literals (e.g. Gana, Dignity)
+KerykeionPointModel.model_rebuild()
+VargaPointModel.model_rebuild()
+TithiModel.model_rebuild()
+YogaModel.model_rebuild()
+KaranaModel.model_rebuild()
+PanchangModel.model_rebuild()
+AstrologicalSubjectModel.model_rebuild()

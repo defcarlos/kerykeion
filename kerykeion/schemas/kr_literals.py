@@ -504,6 +504,36 @@ Karana: TypeAlias = Literal[
 """Literal type for the 11 Karanas"""
 
 
+Dignity: TypeAlias = Literal[
+    "Exalted",
+    "Moolatrikona",
+    "Own Sign",
+    "Great Friend",
+    "Friend",
+    "Neutral",
+    "Enemy",
+    "Great Enemy",
+    "Debilitated",
+]
+"""Literal type for Vedic planetary dignities"""
+
+
+Auspiciousness: TypeAlias = Literal["Auspicious", "Inauspicious", "Neutral", "Mixed"]
+"""Literal type for general astrological quality/status"""
+
+
+Gana: TypeAlias = Literal["Deva", "Manushya", "Rakshasa"]
+"""Literal type for Nakshatra Ganas (Temperaments)"""
+
+
+Nadi: TypeAlias = Literal["Adi", "Madhya", "Antya"]
+"""Literal type for Nakshatra Nadis (Humors/Ayurvedic types)"""
+
+
+NakshatraQuality: TypeAlias = Literal["Sthira", "Chara", "Tikshna", "Ugra", "Kshipra", "Mridu", "Mishra"]
+"""Literal type for Nakshatra nature/quality (Tara)"""
+
+
 # ---------------------------------------------------------------------------
 # Deprecated aliases for backward compatibility with Kerykeion v4.x
 # ---------------------------------------------------------------------------

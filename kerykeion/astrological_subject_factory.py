@@ -60,6 +60,7 @@ from kerykeion.schemas import (
     KaranaModel,
 )
 from kerykeion.nakshatra_utils import get_nakshatra_data
+from kerykeion.vedic_utils import get_tithi_metadata, get_yoga_metadata, get_karana_metadata
 from kerykeion.panchang_utils import (
     get_tithi_data,
     get_yoga_data,
@@ -922,6 +923,11 @@ class AstrologicalSubjectFactory:
                         value.nakshatra_pada = nak_data.get("nakshatra_pada")
                         value.nakshatra_lord = nak_data.get("nakshatra_lord")
                         value.nakshatra_deity = nak_data.get("nakshatra_deity")
+                        value.nakshatra_gana = nak_data.get("nakshatra_gana")
+                        value.nakshatra_yoni = nak_data.get("nakshatra_yoni")
+                        value.nakshatra_nadi = nak_data.get("nakshatra_nadi")
+                        value.nakshatra_symbol = nak_data.get("nakshatra_symbol")
+                        value.nakshatra_quality = nak_data.get("nakshatra_quality")
 
         AstrologicalSubjectFactory._calculate_day_of_week(calc_data)
 
@@ -944,6 +950,19 @@ class AstrologicalSubjectFactory:
                 tithi_data = get_tithi_data(moon_pos, sun_pos, jd)
                 yoga_data = get_yoga_data(moon_pos, sun_pos, jd)
                 karana_data = get_karana_data(moon_pos, sun_pos, jd)
+                
+                # Enrich with metadata
+                tithi_meta = get_tithi_metadata(tithi_data["name"], tithi_data["paksha"])
+                tithi_data.update(tithi_meta)
+                
+                yoga_meta = get_yoga_metadata(yoga_data["name"])
+                yoga_data.update(yoga_meta)
+                
+                karana_meta = get_karana_metadata(karana_data["name"])
+                karana_data.update(karana_meta)
+
+                # Set is_waxing (Shukla is Waxing)
+                is_waxing = tithi_data["paksha"] == "Shukla"
                 
                 # Nakshatra for Panchang is specifically the Moon's Nakshatra
                 moon_point: KerykeionPointModel = calc_data["moon"] # type: ignore
@@ -989,7 +1008,8 @@ class AstrologicalSubjectFactory:
                     nakshatra_end_time=nak_end,
                     vara=calc_data.get("day_of_week", "Unknown"),
                     vara_start_time=vara_start_iso,
-                    vara_end_time=vara_end_iso
+                    vara_end_time=vara_end_iso,
+                    is_waxing=is_waxing
                 )
             except Exception as e:
                 logging.warning(f"Could not calculate Panchang: {e}")

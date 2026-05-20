@@ -6,6 +6,7 @@ Online tests are marked with @pytest.mark.online and require network access.
 """
 
 import pytest
+from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 from requests.exceptions import RequestException
 
@@ -82,9 +83,12 @@ class TestGeonamesMocked:
         cached_session_mock = Mock(return_value=session_mock)
         monkeypatch.setattr("kerykeion.fetch_geonames.CachedSession", cached_session_mock)
 
-        FetchGeonames("TestCity", "TS", cache_name="custom/cache/path")
+        custom_path = "custom/cache/path"
+        FetchGeonames("TestCity", "TS", cache_name=custom_path)
 
-        assert cached_session_mock.call_args.kwargs["cache_name"] == "custom/cache/path"
+        # Use str(Path(...)) to match the implementation's platform-specific path
+        expected_path = str(Path(custom_path))
+        assert cached_session_mock.call_args.kwargs["cache_name"] == expected_path
 
     def test_default_cache_name(self, monkeypatch, tmp_path):
         """Default cache_name uses FetchGeonames.default_cache_name."""
@@ -184,9 +188,10 @@ class TestGeonamesEnvConfig:
     """Test FetchGeonames environment configuration."""
 
     def test_cache_name_from_env(self, monkeypatch):
-        monkeypatch.setenv("KERYKEION_GEONAMES_CACHE_NAME", "/tmp/test_cache")
+        env_path = "/tmp/test_cache"
+        monkeypatch.setenv("KERYKEION_GEONAMES_CACHE_NAME", env_path)
         resolved = FetchGeonames._resolve_cache_name(None)
-        assert str(resolved) == "/tmp/test_cache"
+        assert str(resolved) == str(Path(env_path))
 
 
 class TestGeonamesPrivateErrorPaths:

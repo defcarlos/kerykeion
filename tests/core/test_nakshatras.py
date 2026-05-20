@@ -88,5 +88,43 @@ class TestNakshatras(unittest.TestCase):
         # Still Purva Ashadha but different pada/exact pos
         self.assertEqual(subject.sun.nakshatra, "Purva Ashadha")
 
+    def test_enhanced_metadata(self):
+        # Test Ashwini (Nakshatra 1)
+        data = get_nakshatra_data(0.0, 0.0)
+        self.assertEqual(data["nakshatra_gana"], "Deva")
+        self.assertEqual(data["nakshatra_yoni"], "Horse (Male)")
+        self.assertEqual(data["nakshatra_nadi"], "Adi")
+        self.assertEqual(data["nakshatra_symbol"], "Horse's Head")
+        self.assertEqual(data["nakshatra_quality"], "Kshipra")
+
+        # Test Bharani (Nakshatra 2)
+        data = get_nakshatra_data(15.0, 0.0)
+        self.assertEqual(data["nakshatra"], "Bharani")
+        self.assertEqual(data["nakshatra_gana"], "Manushya")
+        self.assertEqual(data["nakshatra_yoni"], "Elephant (Female)")
+        self.assertEqual(data["nakshatra_nadi"], "Madhya")
+        self.assertEqual(data["nakshatra_quality"], "Ugra")
+
+        # Test through factory
+        subject = AstrologicalSubjectFactory.from_birth_data(
+            name="Enhanced Metadata Test",
+            year=2024, month=1, day=1,
+            hour=0, minute=0,
+            lng=0.0, lat=0.0, tz_str="Etc/GMT",
+            online=False
+        )
+        
+        # Sun in Purva Ashadha
+        self.assertEqual(subject.sun.nakshatra, "Purva Ashadha")
+        self.assertEqual(subject.sun.nakshatra_gana, "Manushya")
+        self.assertEqual(subject.sun.nakshatra_nadi, "Madhya")
+        self.assertEqual(subject.sun.nakshatra_symbol, "Winnowing Basket")
+
+        # Panchang metadata
+        self.assertIsNotNone(subject.panchang.tithi.status)
+        self.assertIsNotNone(subject.panchang.tithi.planetary_ruler)
+        self.assertIsNotNone(subject.panchang.yoga.status)
+        self.assertIsNotNone(subject.panchang.is_waxing)
+
 if __name__ == "__main__":
     unittest.main()

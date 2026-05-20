@@ -13,79 +13,67 @@ This is part of Kerykeion (C) 2025 Giacomo Battaglia
 """
 
 from typing import Dict, Any, Tuple
-from kerykeion.schemas.kr_literals import Nakshatra, NakshatraLord
+from kerykeion.schemas.kr_literals import Nakshatra, NakshatraLord, Gana, Nadi, NakshatraQuality
 
 
 NAKSHATRA_NAMES: Tuple[Nakshatra, ...] = (
-    "Ashwini",
-    "Bharani",
-    "Krittika",
-    "Rohini",
-    "Mrigashira",
-    "Ardra",
-    "Punarvasu",
-    "Pushya",
-    "Ashlesha",
-    "Magha",
-    "Purva Phalguni",
-    "Uttara Phalguni",
-    "Hasta",
-    "Chitra",
-    "Swati",
-    "Vishakha",
-    "Anuradha",
-    "Jyeshtha",
-    "Mula",
-    "Purva Ashadha",
-    "Uttara Ashadha",
-    "Shravana",
-    "Dhanishta",
-    "Shatabhisha",
-    "Purva Bhadrapada",
-    "Uttara Bhadrapada",
-    "Revati",
+    "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
+    "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni",
+    "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha",
+    "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta",
+    "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati",
 )
 
 NAKSHATRA_LORDS: Tuple[NakshatraLord, ...] = (
-    "Ketu",
-    "Venus",
-    "Sun",
-    "Moon",
-    "Mars",
-    "Rahu",
-    "Jupiter",
-    "Saturn",
-    "Mercury",
+    "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury",
+)
+
+NAKSHATRA_GANAS: Tuple[Gana, ...] = (
+    "Deva", "Manushya", "Rakshasa", "Manushya", "Deva", "Manushya",
+    "Deva", "Deva", "Rakshasa", "Rakshasa", "Manushya", "Manushya",
+    "Deva", "Rakshasa", "Deva", "Rakshasa", "Deva", "Rakshasa",
+    "Rakshasa", "Manushya", "Manushya", "Deva", "Rakshasa", "Rakshasa",
+    "Manushya", "Manushya", "Deva",
+)
+
+NAKSHATRA_YONIS: Tuple[str, ...] = (
+    "Horse (Male)", "Elephant (Female)", "Sheep (Female)", "Serpent (Male)", "Serpent (Female)", "Dog (Female)",
+    "Cat (Female)", "Sheep (Male)", "Cat (Male)", "Rat (Male)", "Rat (Female)", "Cow (Female)",
+    "Buffalo (Female)", "Tiger (Female)", "Buffalo (Male)", "Tiger (Male)", "Deer (Female)", "Deer (Male)",
+    "Dog (Male)", "Monkey (Male)", "Mongoose (Male)", "Monkey (Female)", "Lion (Female)", "Horse (Female)",
+    "Lion (Male)", "Cow (Male)", "Elephant (Male)",
+)
+
+NAKSHATRA_NADIS: Tuple[Nadi, ...] = (
+    "Adi", "Madhya", "Antya", "Antya", "Madhya", "Adi",
+    "Adi", "Madhya", "Antya", "Antya", "Madhya", "Adi",
+    "Adi", "Madhya", "Antya", "Antya", "Madhya", "Adi",
+    "Adi", "Madhya", "Antya", "Antya", "Madhya", "Adi",
+    "Adi", "Madhya", "Antya",
+)
+
+NAKSHATRA_SYMBOLS: Tuple[str, ...] = (
+    "Horse's Head", "Yoni / Vessel", "Knife / Razor", "Chariot / Temple", "Deer's Head", "Teardrop / Diamond",
+    "Bow and Quiver", "Flower / Cow's Udder", "Coiled Serpent", "Royal Throne", "Front Legs of Bed", "Back Legs of Bed",
+    "Hand / Palm", "Bright Jewel", "Coral / Sprout in Wind", "Triumphal Arch", "Lotus Flower", "Umbrella / Earring",
+    "Bunch of Roots", "Winnowing Basket", "Elephant's Tusk", "Three Footprints / Ear", "Drum / Flute", "Empty Circle / 1000 Flowers",
+    "Front Parts of Corpse", "Back Parts of Corpse", "Fish / Drum",
+)
+
+NAKSHATRA_QUALITIES: Tuple[NakshatraQuality, ...] = (
+    "Kshipra", "Ugra", "Mishra", "Sthira", "Mridu", "Tikshna",
+    "Chara", "Kshipra", "Tikshna", "Ugra", "Ugra", "Sthira",
+    "Kshipra", "Mridu", "Chara", "Mishra", "Mridu", "Tikshna",
+    "Tikshna", "Ugra", "Sthira", "Chara", "Chara", "Chara",
+    "Ugra", "Sthira", "Mridu",
 )
 
 NAKSHATRA_DEITIES: Tuple[str, ...] = (
-    "Aswini Kumara",
-    "Yama",
-    "Agni",
-    "Bramha",
-    "Moon",
-    "Shiva",
-    "Aditi",
-    "Jupiter",
-    "Rahu",
-    "Sun",
-    "Aryaman",
-    "Sun",
-    "Viswakarma",
-    "Vaayu",
-    "Indra",
-    "Mitra",
-    "Indra",
-    "Nirriti",
-    "Varuna",
-    "Viswadeva",
-    "Brahma",
-    "Vishnu",
-    "Vasu",
-    "Varuna",
-    "Ajacharana",
-    "Ahirbudhanya",
-    "Pooshan",
+    "Aswini Kumara", "Yama", "Agni", "Bramha", "Moon", "Shiva",
+    "Aditi", "Jupiter", "Rahu", "Sun", "Aryaman", "Sun",
+    "Viswakarma", "Vaayu", "Indra", "Mitra", "Indra", "Nirriti",
+    "Varuna", "Viswadeva", "Brahma", "Vishnu", "Vasu", "Varuna",
+    "Ajacharana", "Ahirbudhanya", "Pooshan",
 )
 
 
@@ -99,12 +87,7 @@ def get_nakshatra_data(abs_pos: float, ayanamsa: float = 0.0) -> Dict[str, Any]:
             If the abs_pos is already sidereal, ayanamsa should be 0.0.
 
     Returns:
-        A dictionary containing:
-            - nakshatra: Name of the Nakshatra.
-            - nakshatra_number: Numerical identifier (1-27).
-            - nakshatra_pada: Pada number (1-4).
-            - nakshatra_lord: Name of the Vimsottari Dasha lord.
-            - nakshatra_deity: Ruling deity of the Nakshatra.
+        A dictionary containing Nakshatra name, number, pada, lord, deity, and enhanced metadata.
     """
     # Convert to sidereal position
     sidereal_pos = (abs_pos - ayanamsa) % 360.0
@@ -134,4 +117,9 @@ def get_nakshatra_data(abs_pos: float, ayanamsa: float = 0.0) -> Dict[str, Any]:
         "nakshatra_pada": pada_index + 1,
         "nakshatra_lord": NAKSHATRA_LORDS[lord_index],
         "nakshatra_deity": NAKSHATRA_DEITIES[nakshatra_index],
+        "nakshatra_gana": NAKSHATRA_GANAS[nakshatra_index],
+        "nakshatra_yoni": NAKSHATRA_YONIS[nakshatra_index],
+        "nakshatra_nadi": NAKSHATRA_NADIS[nakshatra_index],
+        "nakshatra_symbol": NAKSHATRA_SYMBOLS[nakshatra_index],
+        "nakshatra_quality": NAKSHATRA_QUALITIES[nakshatra_index],
     }

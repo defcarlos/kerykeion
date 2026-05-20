@@ -166,6 +166,7 @@ class ReportGenerator:
             self._subject_data_report(self._primary_subject, "Astrological Subject"),
             self._celestial_points_report(self._primary_subject, "Celestial Points"),
             self._nakshatra_positions_report(self._primary_subject),
+            self._vargas_report(self._primary_subject),
             self._shadbala_report(self._primary_subject),
             self._houses_report(self._primary_subject, "Houses"),
             self._lunar_phase_report(self._primary_subject),
@@ -314,6 +315,7 @@ class ReportGenerator:
                     self._primary_subject, f"{self._primary_subject_label()} Celestial Points"
                 ),
                 self._nakshatra_positions_report(self._primary_subject),
+                self._vargas_report(self._primary_subject),
                 self._houses_report(self._primary_subject, f"{self._primary_subject_label()} Houses"),
                 self._shadbala_report(self._primary_subject),
                 self._lunar_phase_report(self._primary_subject),
@@ -401,10 +403,11 @@ class ReportGenerator:
                 return iso_str[:16].replace("T", " ")
 
         panchang_data = [
-            ["Limb", "Value", "Deity", "Start", "End"],
+            ["Limb", "Value", "Status", "Deity", "Start", "End"],
             [
                 "Tithi", 
                 f"{panchang.tithi.name} ({panchang.tithi.paksha})", 
+                panchang.tithi.status or "-",
                 panchang.tithi.deity,
                 format_iso(panchang.tithi.start_time),
                 format_iso(panchang.tithi.end_time)
@@ -412,6 +415,7 @@ class ReportGenerator:
             [
                 "Nakshatra", 
                 f"{panchang.nakshatra} ({panchang.nakshatra_pada})", 
+                "-",
                 panchang.nakshatra_deity or "-",
                 format_iso(panchang.nakshatra_start_time),
                 format_iso(panchang.nakshatra_end_time)
@@ -419,6 +423,7 @@ class ReportGenerator:
             [
                 "Yoga", 
                 panchang.yoga.name, 
+                panchang.yoga.status or "-",
                 panchang.yoga.deity,
                 format_iso(panchang.yoga.start_time),
                 format_iso(panchang.yoga.end_time)
@@ -426,6 +431,7 @@ class ReportGenerator:
             [
                 "Karana", 
                 panchang.karana.name, 
+                panchang.karana.status or "-",
                 panchang.karana.deity,
                 format_iso(panchang.karana.start_time),
                 format_iso(panchang.karana.end_time)
@@ -434,11 +440,15 @@ class ReportGenerator:
                 "Vara", 
                 panchang.vara, 
                 "-",
+                "-",
                 format_iso(panchang.vara_start_time),
                 format_iso(panchang.vara_end_time)
             ],
         ]
-        return AsciiTable(panchang_data, title="Panchang (Five Limbs of Time)").table
+        
+        table = AsciiTable(panchang_data, title="Panchang (Five Limbs of Time)").table
+        desc = f"\nDescription: {panchang.tithi.description or 'No description available.'}"
+        return f"{table}\n{desc}"
 
     def _nakshatra_positions_report(self, subject: SubjectLike) -> str:
         points = self._collect_celestial_points(subject)
@@ -450,7 +460,7 @@ class ReportGenerator:
         if not points_with_nak:
             return ""
 
-        nak_data: List[List[str]] = [["Point", "Nakshatra", "Pada", "Lord", "Deity"]]
+        nak_data: List[List[str]] = [["Point", "Nakshatra", "Pada", "Lord", "Gana", "Yoni", "Quality"]]
         for p in points_with_nak:
             nak_data.append(
                 [
@@ -458,11 +468,49 @@ class ReportGenerator:
                     p.nakshatra,
                     str(p.nakshatra_pada),
                     p.nakshatra_lord or "-",
-                    p.nakshatra_deity or "-",
+                    p.nakshatra_gana or "-",
+                    p.nakshatra_yoni or "-",
+                    p.nakshatra_quality or "-",
                 ]
             )
 
         return AsciiTable(nak_data, title="Nakshatra Positions").table
+
+    def _vargas_report(self, subject: SubjectLike) -> str:
+        vargas = getattr(subject, "vargas", None)
+        if not vargas:
+            return ""
+
+        sections = []
+        # Main Vargas to show in detail
+        varga_list = ["D1", "D9"]
+        for v_code in varga_list:
+            v_chart = vargas.get(v_code)
+            if not v_chart:
+                continue
+
+            v_data: List[List[str]] = [["Point", "Sign", "Lord", "Dignity", "Status"]]
+            main_planets = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Ascendant"]
+            
+            for p_name in main_planets:
+                p_v = v_chart.points.get(p_name.lower())
+                if p_v:
+                    status = []
+                    if p_v.is_vargottama: status.append("VARGOTTAMA")
+                    if p_v.is_pushkara: status.append("PUSHKARA")
+                    status_str = ", ".join(status) if status else "-"
+                    
+                    v_data.append([
+                        p_name,
+                        f"{p_v.sign} {p_v.emoji}",
+                        p_v.sign_lord or "-",
+                        p_v.dignity or "-",
+                        status_str
+                    ])
+
+            sections.append(AsciiTable(v_data, title=f"Varga {v_code} Details").table)
+
+        return "\n\n".join(sections)
 
     def _build_title(self) -> str:
         if self._model_kind == "moon_phase_overview":
