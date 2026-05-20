@@ -546,12 +546,44 @@ class PlanetaryShadbalaModel(SubscriptableBaseModel):
     All values are in Virupas (60 Virupas = 1 Rupa).
     """
 
-    sthana_bala: float = Field(description="Positional strength.")
-    dig_bala: float = Field(description="Directional strength.")
-    kala_bala: float = Field(description="Temporal strength.")
+    # 1. Sthana Bala (Positional)
+    sthana_bala: float = Field(description="Total positional strength.")
+    sthana_ucha: float = Field(default=0.0, description="Exaltation strength.")
+    sthana_saptavarga: float = Field(default=0.0, description="Divisional strength (Saptavarga).")
+    sthana_kendradi: float = Field(default=0.0, description="Angular strength.")
+    sthana_ojhayugma: float = Field(default=0.0, description="Odd/Even sign placement strength.")
+    sthana_drekkana: float = Field(default=0.0, description="Decan/Gender strength.")
+
+    # 2. Dig Bala (Directional)
+    dig_bala: float = Field(description="Total directional strength.")
+    dig_distance: float = Field(default=0.0, description="Distance from peak directional point (0-180).")
+
+    # 3. Kala Bala (Temporal)
+    kala_bala: float = Field(description="Total temporal strength.")
+    kala_nathonnatha: float = Field(default=0.0, description="Day/Night strength.")
+    kala_paksha: float = Field(default=0.0, description="Moon phase strength.")
+    kala_varsha: float = Field(default=0.0, description="Year lord strength.")
+    kala_maasa: float = Field(default=0.0, description="Month lord strength.")
+    kala_dina: float = Field(default=0.0, description="Day lord strength.")
+    kala_hora: float = Field(default=0.0, description="Hour lord strength.")
+    kala_ayana: float = Field(default=0.0, description="Equinoctial strength.")
+
+    # 4. Chesta Bala (Motional)
     chesta_bala: float = Field(description="Motional strength.")
-    naisargika_bala: float = Field(description="Natural strength.")
-    drik_bala: float = Field(description="Aspectual strength.")
+    chesta_ratio: float = Field(default=0.0, description="Ratio of actual speed to average speed.")
+
+    # 5. Naisargika Bala (Natural)
+    naisargika_bala: float = Field(description="Inherent natural strength.")
+
+    # 6. Drik Bala (Aspectual)
+    drik_bala: float = Field(description="Total aspectual/support strength.")
+    drik_benefic: float = Field(default=0.0, description="Positive support from benefics.")
+    drik_malefic: float = Field(default=0.0, description="Negative impact from malefics.")
+
+    # Final Adjustments
+    yudha_bala: float = Field(default=0.0, description="Planetary war adjustment.")
+
+    # Totals
     total_virupas: float = Field(description="Total strength in Virupas.")
     total_rupas: float = Field(description="Total strength in Rupas (Virupas / 60).")
     minimum_required: float = Field(description="Minimum required strength in Rupas for this planet.")

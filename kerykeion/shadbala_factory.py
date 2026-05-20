@@ -52,7 +52,7 @@ class ShadbalaFactory:
 
     def calculate(self) -> ShadbalaModel:
         """
-        Calculate full Shadbala for the subject.
+        Calculate full Shadbala for the subject with exhaustive granular metrics.
         """
         planetary_scores = {}
         base_total_virupas = {}
@@ -62,34 +62,76 @@ class ShadbalaFactory:
             if not planet_data:
                 continue
 
-            # Calculate individual components
-            sthana = self._calculate_sthana_bala(planet_data)
-            dig = self._calculate_dig_bala(planet_data)
-            kala = self._calculate_kala_bala(planet_data)
-            chesta = self._calculate_chesta_bala(planet_data)
-            naisargika = self._calculate_naisargika_bala(planet_name)
-            drik = self._calculate_drik_bala(planet_data)
+            # 1. Sthana Bala
+            sthana_ucha = self._calculate_ucha_bala(planet_data)
+            sthana_saptavarga = self._calculate_saptavarga_bala(planet_data)
+            sthana_kendradi = self._calculate_kendradi_bala(planet_data)
+            sthana_ojhayugma = self._calculate_ojha_bala(planet_data)
+            sthana_drekkana = self._calculate_drekkana_bala(planet_data)
+            sthana_total = sthana_ucha + sthana_saptavarga + sthana_kendradi + sthana_ojhayugma + sthana_drekkana
 
-            total_virupas = sthana + dig + kala + chesta + naisargika + drik
+            # 2. Dig Bala
+            dig_total, dig_dist = self._calculate_dig_bala(planet_data)
+
+            # 3. Kala Bala
+            kala_nathonnatha = self._calculate_nathonnatha_bala(planet_data)
+            kala_paksha = self._calculate_paksha_bala(planet_data)
+            
+            # Time Lords sub-breakdown
+            v_lord, m_lord = self._get_varsha_maasa_lords()
+            kala_varsha = 15.0 if planet_data.name == v_lord else 0.0
+            kala_maasa = 30.0 if planet_data.name == m_lord else 0.0
+            kala_dina = 45.0 if planet_data.name == self.subject.panchang.vara else 0.0
+            kala_hora = 60.0 if planet_data.name == self._get_hora_lord() else 0.0
+            
+            kala_ayana = self._calculate_ayana_bala(planet_data)
+            kala_total = kala_nathonnatha + kala_paksha + kala_varsha + kala_maasa + kala_dina + kala_hora + kala_ayana
+
+            # 4. Chesta Bala
+            chesta_total, chesta_ratio = self._calculate_chesta_bala_with_ratio(planet_data)
+
+            # 5. Naisargika Bala
+            naisargika_total = self._calculate_naisargika_bala(planet_name)
+
+            # 6. Drik Bala
+            drik_total, drik_ben, drik_mal = self._calculate_drik_bala_with_sums(planet_data)
+
+            total_virupas = sthana_total + dig_total + kala_total + chesta_total + naisargika_total + drik_total
             base_total_virupas[planet_name] = total_virupas
 
             planetary_scores[planet_name.lower()] = {
-                "sthana_bala": round(sthana, 2),
-                "dig_bala": round(dig, 2),
-                "kala_bala": round(kala, 2),
-                "chesta_bala": round(chesta, 2),
-                "naisargika_bala": round(naisargika, 2),
-                "drik_bala": round(drik, 2),
+                "sthana_bala": round(sthana_total, 2),
+                "sthana_ucha": round(sthana_ucha, 2),
+                "sthana_saptavarga": round(sthana_saptavarga, 2),
+                "sthana_kendradi": round(sthana_kendradi, 2),
+                "sthana_ojhayugma": round(sthana_ojhayugma, 2),
+                "sthana_drekkana": round(sthana_drekkana, 2),
+                "dig_bala": round(dig_total, 2),
+                "dig_distance": round(dig_dist, 2),
+                "kala_bala": round(kala_total, 2),
+                "kala_nathonnatha": round(kala_nathonnatha, 2),
+                "kala_paksha": round(kala_paksha, 2),
+                "kala_varsha": round(kala_varsha, 2),
+                "kala_maasa": round(kala_maasa, 2),
+                "kala_dina": round(kala_dina, 2),
+                "kala_hora": round(kala_hora, 2),
+                "kala_ayana": round(kala_ayana, 2),
+                "chesta_bala": round(chesta_total, 2),
+                "chesta_ratio": round(chesta_ratio, 2),
+                "naisargika_bala": round(naisargika_total, 2),
+                "drik_bala": round(drik_total, 2),
+                "drik_benefic": round(drik_ben, 2),
+                "drik_malefic": round(drik_mal, 2),
             }
 
         # --- 7. Yudha Bala (Planetary War) ---
-        # Final adjustment based on planetary wars
         yudha_adjustments = self._calculate_yudha_bala(base_total_virupas)
         
         final_models = {}
         for p_name, base_scores in planetary_scores.items():
             cap_name = p_name.capitalize()
-            total_v = base_total_virupas[cap_name] + yudha_adjustments.get(cap_name, 0.0)
+            yudha_v = yudha_adjustments.get(cap_name, 0.0)
+            total_v = base_total_virupas[cap_name] + yudha_v
             total_r = total_v / 60.0
             
             min_req = SHADBALA_MINIMUM_REQUIREMENTS.get(cap_name, 5.0)
@@ -97,6 +139,7 @@ class ShadbalaFactory:
             
             final_models[p_name] = PlanetaryShadbalaModel(
                 **base_scores,
+                yudha_bala=round(yudha_v, 2),
                 total_virupas=round(total_v, 2),
                 total_rupas=round(total_r, 2),
                 minimum_required=min_req,
@@ -104,6 +147,66 @@ class ShadbalaFactory:
             )
 
         return ShadbalaModel(**final_models)
+
+    def _calculate_chesta_bala_with_ratio(self, planet: KerykeionPointModel) -> Tuple[float, float]:
+        """
+        Returns (Bala, Ratio).
+        """
+        if planet.name in ["Sun", "Moon"]: return 0.0, 1.0
+        if planet.retrograde: return 60.0, 0.0
+            
+        avg_speeds = {"Mars": 0.524, "Mercury": 1.383, "Jupiter": 0.083, "Venus": 1.200, "Saturn": 0.033}
+        avg = avg_speeds.get(planet.name, 1.0)
+        speed = abs(planet.speed) if planet.speed is not None else avg
+        
+        ratio = speed / avg
+        if ratio > 2.0: ratio = 2.0
+        bala = max(0.0, min(60.0, (2.0 - ratio) * 30.0))
+        return bala, ratio
+
+    def _calculate_drik_bala_with_sums(self, planet: KerykeionPointModel) -> Tuple[float, float, float]:
+        """
+        Returns (Net, Benefic Sum, Malefic Sum).
+        """
+        benefic_sum = 0.0
+        malefic_sum = 0.0
+
+        for other_name in self.TRADITIONAL_PLANETS:
+            if other_name == planet.name:
+                continue
+
+            other = self.subject[other_name.lower()]
+            if not other:
+                continue
+
+            dist = planet.abs_pos - other.abs_pos
+            if dist < 0: dist += 360
+
+            aspect_strength = 0.0
+            if 30 <= dist <= 180:
+                aspect_strength = (dist - 30) / 150.0 * 60.0
+            elif 180 < dist <= 300:
+                aspect_strength = (300 - dist) / 120.0 * 60.0
+
+            special_strength = 0.0
+            if other_name == "Mars":
+                if abs(dist - 90) <= 15: special_strength = 60.0 * (1 - abs(dist - 90) / 15)
+                elif abs(dist - 210) <= 15: special_strength = 60.0 * (1 - abs(dist - 210) / 15)
+            elif other_name == "Jupiter":
+                if abs(dist - 120) <= 15: special_strength = 60.0 * (1 - abs(dist - 120) / 15)
+                elif abs(dist - 240) <= 15: special_strength = 60.0 * (1 - abs(dist - 240) / 15)
+            elif other_name == "Saturn":
+                if abs(dist - 60) <= 15: special_strength = 60.0 * (1 - abs(dist - 60) / 15)
+                elif abs(dist - 270) <= 15: special_strength = 60.0 * (1 - abs(dist - 270) / 15)
+
+            aspect_strength = max(aspect_strength, special_strength)
+
+            if self._is_benefic(other_name):
+                benefic_sum += aspect_strength / 4.0
+            else:
+                malefic_sum += aspect_strength / 4.0
+
+        return benefic_sum - malefic_sum, benefic_sum, malefic_sum
 
     def _calculate_yudha_bala(self, base_strengths: Dict[str, float]) -> Dict[str, float]:
         """
@@ -140,9 +243,6 @@ class ShadbalaFactory:
                 
                 if dist <= 1.0:
                     # War detected!
-                    # Victor determination (Raman/Classical): 
-                    # Usually the planet with higher northern declination or larger diameter.
-                    # Standard mathematical transfer: |S1 - S2| / |D1 - D2|
                     s1, s2 = base_strengths[p1_name], base_strengths[p2_name]
                     d1, d2 = diameters[p1_name], diameters[p2_name]
                     
@@ -152,7 +252,7 @@ class ShadbalaFactory:
                     # Transfer amount
                     transfer = diff_s / (diff_d if diff_d != 0 else 1.0)
                     
-                    # Determine victor (simplification: larger diameter wins in Raman's system)
+                    # Determine victor
                     if d1 > d2:
                         adjustments[p1_name] += transfer
                         adjustments[p2_name] -= transfer
@@ -302,19 +402,22 @@ class ShadbalaFactory:
 
     # --- 2. Dig Bala (Directional Strength) ---
 
-    def _calculate_dig_bala(self, planet: KerykeionPointModel) -> float:
+    def _calculate_dig_bala(self, planet: KerykeionPointModel) -> Tuple[float, float]:
         """
         Directional strength based on proximity to the ideal house cusp.
+        Returns (Total Dig Bala, Distance from Peak).
         """
         max_house_num = DIG_BALA_MAX_POINTS.get(planet.name)
-        if not max_house_num: return 0.0
+        if not max_house_num: return 0.0, 0.0
 
         house_map = {1: "first_house", 4: "fourth_house", 7: "seventh_house", 10: "tenth_house"}
         target_cusp: KerykeionPointModel = self.subject[house_map[max_house_num]]
         
         diff = abs(planet.abs_pos - target_cusp.abs_pos)
         if diff > 180: diff = 360 - diff
-        return (180.0 - diff) / 3.0
+        
+        bala = (180.0 - diff) / 3.0
+        return max(0.0, bala), diff
 
     # --- 3. Kala Bala (Temporal Strength) ---
 
@@ -381,8 +484,6 @@ class ShadbalaFactory:
             total += 60.0
             
         # 3. Varsha (Year) and Maasa (Month) Lords
-        # These require Ahargana calculation. 
-        # Using a simplified cyclic approach for now based on Raman's tables.
         v_lord, m_lord = self._get_varsha_maasa_lords()
         if planet.name == v_lord: total += 15.0
         if planet.name == m_lord: total += 30.0

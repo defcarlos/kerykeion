@@ -94,6 +94,7 @@ class ReportGenerator:
         *,
         include_aspects: Optional[bool] = None,
         max_aspects: Optional[int] = None,
+        show_shadbala_details: bool = False,
     ) -> str:
         """
         Build the report content without printing it.
@@ -101,6 +102,7 @@ class ReportGenerator:
         Args:
             include_aspects: Override the default setting for including the aspects section.
             max_aspects: Override the default limit for the number of aspects displayed.
+            show_shadbala_details: Include granular Shadbala breakdowns.
         """
         include_aspects = self._include_aspects_default if include_aspects is None else include_aspects
         max_aspects = self._max_aspects_default if max_aspects is None else max_aspects
@@ -108,11 +110,15 @@ class ReportGenerator:
         if self._model_kind == "moon_phase_overview":
             sections = self._build_moon_phase_overview_report()
         elif self._model_kind == "subject":
-            sections = self._build_subject_report()
+            sections = self._build_subject_report(show_shadbala_details=show_shadbala_details)
         elif self._model_kind == "single_chart":
-            sections = self._build_single_chart_report(include_aspects=include_aspects, max_aspects=max_aspects)
+            sections = self._build_single_chart_report(
+                include_aspects=include_aspects, max_aspects=max_aspects, show_shadbala_details=show_shadbala_details
+            )
         else:
-            sections = self._build_dual_chart_report(include_aspects=include_aspects, max_aspects=max_aspects)
+            sections = self._build_dual_chart_report(
+                include_aspects=include_aspects, max_aspects=max_aspects, show_shadbala_details=show_shadbala_details
+            )
 
         title = self._build_title().strip("\n")
         full_sections = [title, *[section for section in sections if section]]
@@ -123,11 +129,16 @@ class ReportGenerator:
         *,
         include_aspects: Optional[bool] = None,
         max_aspects: Optional[int] = None,
+        show_shadbala_details: bool = False,
     ) -> None:
         """
         Print the generated report to stdout.
         """
-        print(self.generate_report(include_aspects=include_aspects, max_aspects=max_aspects))
+        print(
+            self.generate_report(
+                include_aspects=include_aspects, max_aspects=max_aspects, show_shadbala_details=show_shadbala_details
+            )
+        )
 
     # ------------------------------------------------------------------ #
     # Internal initialisation helpers
@@ -171,7 +182,7 @@ class ReportGenerator:
     # Report builders
     # ------------------------------------------------------------------ #
 
-    def _build_subject_report(self) -> List[str]:
+    def _build_subject_report(self, show_shadbala_details: bool = False) -> List[str]:
         assert self._primary_subject is not None
         sections = [
             self._subject_data_report(self._primary_subject, "Astrological Subject"),
@@ -179,10 +190,18 @@ class ReportGenerator:
             self._nakshatra_positions_report(self._primary_subject),
             self._vargas_report(self._primary_subject),
             self._shadbala_report(self._primary_subject),
-            self._houses_report(self._primary_subject, "Houses"),
-            self._lunar_phase_report(self._primary_subject),
-            self._panchang_report(self._primary_subject),
         ]
+
+        if show_shadbala_details:
+            sections.append(self._shadbala_detailed_report(self._primary_subject))
+
+        sections.extend(
+            [
+                self._houses_report(self._primary_subject, "Houses"),
+                self._lunar_phase_report(self._primary_subject),
+                self._panchang_report(self._primary_subject),
+            ]
+        )
         return sections
 
     def _build_moon_phase_overview_report(self) -> List[str]:
@@ -299,7 +318,9 @@ class ReportGenerator:
 
         return sections
 
-    def _build_single_chart_report(self, *, include_aspects: bool, max_aspects: Optional[int]) -> List[str]:
+    def _build_single_chart_report(
+        self, *, include_aspects: bool, max_aspects: Optional[int], show_shadbala_details: bool = False
+    ) -> List[str]:
         assert self._chart_data is not None
         assert self._primary_subject is not None
         sections: List[str] = [
@@ -329,6 +350,14 @@ class ReportGenerator:
                 self._vargas_report(self._primary_subject),
                 self._houses_report(self._primary_subject, f"{self._primary_subject_label()} Houses"),
                 self._shadbala_report(self._primary_subject),
+            ]
+        )
+
+        if show_shadbala_details:
+            sections.append(self._shadbala_detailed_report(self._primary_subject))
+
+        sections.extend(
+            [
                 self._lunar_phase_report(self._primary_subject),
                 self._panchang_report(self._primary_subject),
                 self._elements_report(),
@@ -342,7 +371,9 @@ class ReportGenerator:
 
         return sections
 
-    def _build_dual_chart_report(self, *, include_aspects: bool, max_aspects: Optional[int]) -> List[str]:
+    def _build_dual_chart_report(
+        self, *, include_aspects: bool, max_aspects: Optional[int], show_shadbala_details: bool = False
+    ) -> List[str]:
         assert self._chart_data is not None
         assert self._primary_subject is not None
         primary_label, secondary_label = self._subject_role_labels()
@@ -371,6 +402,15 @@ class ReportGenerator:
 
         if self._secondary_subject is not None:
             sections.append(self._houses_report(self._secondary_subject, f"{secondary_label} Houses"))
+
+        sections.extend(
+            [
+                self._shadbala_report(self._primary_subject),
+            ]
+        )
+
+        if show_shadbala_details:
+            sections.append(self._shadbala_detailed_report(self._primary_subject))
 
         sections.extend(
             [
@@ -847,6 +887,88 @@ class ReportGenerator:
         # but for now we'll stick to this summary.
         
         return f"{report}\n{summary}"
+
+    def _shadbala_detailed_report(self, subject: SubjectLike) -> str:
+        shadbala = getattr(subject, "shadbala", None)
+        if not shadbala:
+            return ""
+
+        planets = ["sun", "moon", "mars", "mercury", "jupiter", "venus", "saturn"]
+        sections = []
+
+        # 1. Sthana Bala Breakdown
+        sthana_data = [["Planet", "Ucha", "Saptavarga", "Kendradi", "Ojha-Yugma", "Drekkana", "Total"]]
+        for p_name in planets:
+            p = getattr(shadbala, p_name)
+            sthana_data.append([
+                p_name.capitalize(),
+                f"{p.sthana_ucha:.1f}",
+                f"{p.sthana_saptavarga:.1f}",
+                f"{p.sthana_kendradi:.1f}",
+                f"{p.sthana_ojhayugma:.1f}",
+                f"{p.sthana_drekkana:.1f}",
+                f"{p.sthana_bala:.1f}"
+            ])
+        sections.append(AsciiTable(sthana_data, title="1. Sthana Bala Breakdown (Positional)").table)
+
+        # 2. Dig & Chesta Breakdown
+        dig_chesta_data = [["Planet", "Dig Dist.", "Dig Bala", "Speed Ratio", "Chesta Bala"]]
+        for p_name in planets:
+            p = getattr(shadbala, p_name)
+            dig_chesta_data.append([
+                p_name.capitalize(),
+                f"{p.dig_distance:.1f}°",
+                f"{p.dig_bala:.1f}",
+                f"{p.chesta_ratio:.2f}x",
+                f"{p.chesta_bala:.1f}"
+            ])
+        sections.append(AsciiTable(dig_chesta_data, title="2 & 4. Dig & Chesta Breakdown (Dir/Mot)").table)
+
+        # 3. Kala Bala Breakdown
+        kala_data = [["Planet", "Nath.", "Paksha", "Varsha", "Maasa", "Dina", "Hora", "Ayana", "Total"]]
+        for p_name in planets:
+            p = getattr(shadbala, p_name)
+            kala_data.append([
+                p_name.capitalize(),
+                f"{p.kala_nathonnatha:.1f}",
+                f"{p.kala_paksha:.1f}",
+                f"{p.kala_varsha:.1f}",
+                f"{p.kala_maasa:.1f}",
+                f"{p.kala_dina:.1f}",
+                f"{p.kala_hora:.1f}",
+                f"{p.kala_ayana:.1f}",
+                f"{p.kala_bala:.1f}"
+            ])
+        sections.append(AsciiTable(kala_data, title="3. Kala Bala Breakdown (Temporal)").table)
+
+        # 4. Drik & Naisargika Breakdown
+        drik_data = [["Planet", "Benefic (+)", "Malefic (-)", "Net Drik", "Naisargika"]]
+        for p_name in planets:
+            p = getattr(shadbala, p_name)
+            drik_data.append([
+                p_name.capitalize(),
+                f"{p.drik_benefic:+.1f}",
+                f"{p.drik_malefic:+.1f}",
+                f"{p.drik_bala:.1f}",
+                f"{p.naisargika_bala:.1f}"
+            ])
+        sections.append(AsciiTable(drik_data, title="5 & 6. Naisargika & Drik Breakdown (Nat/Asp)").table)
+
+        # 5. Final Total with Yudha
+        totals_data = [["Planet", "Base Total", "Yudha Adj.", "Grand Total (V)", "Rupas"]]
+        for p_name in planets:
+            p = getattr(shadbala, p_name)
+            base = p.total_virupas - p.yudha_bala
+            totals_data.append([
+                p_name.capitalize(),
+                f"{base:.1f}",
+                f"{p.yudha_bala:+.1f}",
+                f"{p.total_virupas:.1f}",
+                f"{p.total_rupas:.2f}"
+            ])
+        sections.append(AsciiTable(totals_data, title="Shadbala Totals & Adjustments").table)
+
+        return "\n\n".join(sections)
 
     def _active_configuration_report(self) -> str:
         if not self._active_points and not self._active_aspects:
