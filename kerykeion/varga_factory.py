@@ -29,7 +29,8 @@ from kerykeion.schemas import (
     AstrologicalPoint,
 )
 from kerykeion.utilities import get_kerykeion_point_from_degree
-from kerykeion.vedic_utils import get_dignity, get_sign_lord, is_pushkara
+from kerykeion.vedic_utils import get_vedic_dignity, get_sign_lord, is_pushkara
+from kerykeion.western_utils import get_western_dignity
 
 
 class VargaFactory:
@@ -156,7 +157,6 @@ class VargaFactory:
         )
         
         # Enrichments
-        dignity = get_dignity(point.name, varga_sign_num, varga_degree)
         sign_lord = get_sign_lord(varga_sign_num)
         is_vargottama_status = (varga_sign_num == sign_num) if varga_type != "D1" else False
         is_pushkara_status = is_pushkara(sign_num, degree_in_sign, varga_type)
@@ -164,7 +164,6 @@ class VargaFactory:
         return VargaPointModel(
             **base_point.model_dump(),
             varga_type=varga_type,
-            dignity=dignity,
             sign_lord=sign_lord,
             is_vargottama=is_vargottama_status,
             is_pushkara=is_pushkara_status,

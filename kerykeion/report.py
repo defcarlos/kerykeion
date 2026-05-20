@@ -59,10 +59,12 @@ class ReportGenerator:
         *,
         include_aspects: bool = True,
         max_aspects: Optional[int] = None,
+        paradigm: Optional[Literal["Western", "Vedic"]] = None,
     ) -> None:
         self.model = model
         self._include_aspects_default = include_aspects
         self._max_aspects_default = max_aspects
+        self.paradigm = paradigm
 
         self.chart_type: Optional[str] = None
         self._model_kind: LiteralReportKind
@@ -73,6 +75,15 @@ class ReportGenerator:
         self._active_aspects: List[dict] = []
 
         self._resolve_model()
+
+        # Default paradigm based on zodiac type if not provided
+        if self.paradigm is None and self._primary_subject:
+            if self._primary_subject.zodiac_type == "Sidereal":
+                self.paradigm = "Vedic"
+            else:
+                self.paradigm = "Western"
+        elif self.paradigm is None:
+            self.paradigm = "Western"
 
     # ------------------------------------------------------------------ #
     # Public API
@@ -489,7 +500,7 @@ class ReportGenerator:
             if not v_chart:
                 continue
 
-            v_data: List[List[str]] = [["Point", "Sign", "Lord", "Dignity", "Status"]]
+            v_data: List[List[str]] = [["Point", "Sign", "Lord", f"Dignity ({self.paradigm})", "Status"]]
             main_planets = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Ascendant"]
             
             for p_name in main_planets:
@@ -500,11 +511,17 @@ class ReportGenerator:
                     if p_v.is_pushkara: status.append("PUSHKARA")
                     status_str = ", ".join(status) if status else "-"
                     
+                    # Paradigm-specific Dignity
+                    if self.paradigm == "Vedic":
+                        dignity = p_v.vedic_dignity or "-"
+                    else:
+                        dignity = p_v.western_dignity or "-"
+
                     v_data.append([
                         p_name,
                         f"{p_v.sign} {p_v.emoji}",
                         p_v.sign_lord or "-",
-                        p_v.dignity or "-",
+                        dignity,
                         status_str
                     ])
 
@@ -659,25 +676,20 @@ class ReportGenerator:
         used_names = set(angles + main_planets + nodes)
         sorted_points.extend([p for p in points if p.name not in used_names])
 
-        from kerykeion.settings.vedic_constants import EXALTATION_DEGREES, DEBILITATION_DEGREES
-
-        celestial_data: List[List[str]] = [["Point", "Sign", "Position", "Dignity", "Total (R)", "Speed", "Decl.", "Ret.", "House"]]
+        celestial_data: List[List[str]] = [
+            ["Point", "Sign", "Position", f"Dignity ({self.paradigm})", "Total (R)", "Speed", "Decl.", "Ret.", "House"]
+        ]
         for point in sorted_points:
             speed_str = f"{point.speed:+.2f}°/d" if point.speed is not None else "N/A"
             decl_str = f"{point.declination:+.1f}°" if point.declination is not None else "N/A"
             ret_str = "R" if point.retrograde else "-"
             house_str = point.house.replace("_", " ") if point.house else "-"
-            
-            # Dignity Check
-            dignity = "-"
-            if point.name in EXALTATION_DEGREES:
-                ex_sign, ex_deg = EXALTATION_DEGREES[point.name]
-                if point.sign_num == ex_sign and abs(point.position - ex_deg) < 5.0:
-                    dignity = "Exalted ⬆"
-                
-                deb_sign, deb_deg = DEBILITATION_DEGREES[point.name]
-                if point.sign_num == deb_sign and abs(point.position - deb_deg) < 5.0:
-                    dignity = "Debilitated ⬇"
+
+            # Paradigm-specific Dignity
+            if self.paradigm == "Vedic":
+                dignity = point.vedic_dignity or "-"
+            else:
+                dignity = point.western_dignity or "-"
 
             # Shadbala total (Rupas)
             shadbala_r = "-"

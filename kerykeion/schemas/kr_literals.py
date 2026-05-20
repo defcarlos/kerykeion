@@ -504,7 +504,17 @@ Karana: TypeAlias = Literal[
 """Literal type for the 11 Karanas"""
 
 
-Dignity: TypeAlias = Literal[
+WesternDignity: TypeAlias = Literal[
+    "Domicile",
+    "Exaltation",
+    "Detriment",
+    "Fall",
+    "Peregrine",
+]
+"""Literal type for Western/Ptolemaic planetary dignities"""
+
+
+VedicDignity: TypeAlias = Literal[
     "Exalted",
     "Moolatrikona",
     "Own Sign",
@@ -516,6 +526,10 @@ Dignity: TypeAlias = Literal[
     "Debilitated",
 ]
 """Literal type for Vedic planetary dignities"""
+
+
+Dignity: TypeAlias = VedicDignity
+"""DEPRECATED: Use VedicDignity or WesternDignity instead. This alias will be removed in v6.0."""
 
 
 Auspiciousness: TypeAlias = Literal["Auspicious", "Inauspicious", "Neutral", "Mixed"]

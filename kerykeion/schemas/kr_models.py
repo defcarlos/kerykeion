@@ -57,6 +57,8 @@ from kerykeion.schemas.kr_literals import (
     Karana,
     ReturnType,
     Dignity,
+    WesternDignity,
+    VedicDignity,
     Auspiciousness,
     Gana,
     Nadi,
@@ -425,6 +427,15 @@ class KerykeionPointModel(SubscriptableBaseModel):
     nakshatra_quality: Optional[NakshatraQuality] = Field(
         default=None, description="The quality or nature of the Nakshatra."
     )
+    western_dignity: Optional[WesternDignity] = Field(
+        default=None, description="Planetary dignity according to Western/Ptolemaic rules."
+    )
+    vedic_dignity: Optional[VedicDignity] = Field(
+        default=None, description="Planetary dignity according to Vedic/Parashari rules."
+    )
+    dignity: Optional[Dignity] = Field(
+        default=None, description="DEPRECATED: Use western_dignity or vedic_dignity."
+    )
 
 
 class TithiModel(SubscriptableBaseModel):
@@ -502,7 +513,13 @@ class VargaPointModel(KerykeionPointModel):
     """
 
     varga_type: str = Field(description="The type of Varga chart (e.g., D9, D2).")
-    dignity: Optional[Dignity] = Field(default=None, description="Planetary dignity in the divisional chart.")
+    western_dignity: Optional[WesternDignity] = Field(
+        default=None, description="Planetary dignity according to Western/Ptolemaic rules."
+    )
+    vedic_dignity: Optional[VedicDignity] = Field(
+        default=None, description="Planetary dignity according to Vedic/Parashari rules."
+    )
+    dignity: Optional[Dignity] = Field(default=None, description="DEPRECATED: Use western_dignity or vedic_dignity.")
     is_vargottama: Optional[bool] = Field(
         default=None, description="True if the planet is in the same sign as in the D1 (Rasi) chart."
     )

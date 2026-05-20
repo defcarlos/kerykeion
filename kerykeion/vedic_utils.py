@@ -11,7 +11,7 @@ This is part of Kerykeion (C) 2025 Giacomo Battaglia
 """
 
 from typing import Optional, Tuple, Dict, Any, List
-from kerykeion.schemas.kr_literals import Dignity, Auspiciousness, Tithi, Yoga, Karana
+from kerykeion.schemas.kr_literals import VedicDignity, Auspiciousness, Tithi, Yoga, Karana
 from kerykeion.settings.vedic_constants import (
     PLANETARY_DOMICILES,
     EXALTATION_DEGREES,
@@ -37,14 +37,14 @@ def get_sign_lord(sign_num: int) -> Optional[str]:
     return None
 
 
-def get_dignity(
+def get_vedic_dignity(
     planet_name: str, 
     sign_num: int, 
     position: float, 
     temporary_friends: Optional[List[str]] = None
-) -> Optional[Dignity]:
+) -> Optional[VedicDignity]:
     """
-    Determine the essential dignity of a planet in a specific position.
+    Determine the essential dignity of a planet in a specific position (Vedic rules).
     
     Args:
         planet_name: Name of the planet (e.g., 'Sun').
@@ -53,7 +53,7 @@ def get_dignity(
         temporary_friends: Optional list of temporary friends for combined relationship calculation.
         
     Returns:
-        The Dignity literal (e.g., 'Exalted', 'Own Sign').
+        The VedicDignity literal (e.g., 'Exalted', 'Own Sign').
     """
     if planet_name not in EXALTATION_DEGREES and planet_name not in PLANETARY_DOMICILES:
         return None

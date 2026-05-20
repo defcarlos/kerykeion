@@ -25,6 +25,8 @@ from kerykeion.schemas import (
     ZodiacType,
 )
 from kerykeion.nakshatra_utils import get_nakshatra_data
+from kerykeion.vedic_utils import get_vedic_dignity
+from kerykeion.western_utils import get_western_dignity
 from kerykeion.schemas.kr_literals import (
     LunarPhaseEmoji,
     LunarPhaseName,
@@ -239,6 +241,10 @@ def get_kerykeion_point_from_degree(
     if nakshatra_ayanamsa_value is not None:
         nakshatra_data = get_nakshatra_data(degree, nakshatra_ayanamsa_value)
 
+    # Dignity Calculations
+    western_dignity = get_western_dignity(str(name), sign_index)
+    vedic_dignity = get_vedic_dignity(str(name), sign_index, sign_degree)
+
     return KerykeionPointModel(
         name=name,
         quality=zodiac_sign.quality,
@@ -252,6 +258,9 @@ def get_kerykeion_point_from_degree(
         speed=speed,
         declination=declination,
         magnitude=magnitude,
+        western_dignity=western_dignity,
+        vedic_dignity=vedic_dignity,
+        dignity=vedic_dignity,  # Legacy support
         **nakshatra_data,
     )
 
