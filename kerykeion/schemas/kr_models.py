@@ -61,6 +61,8 @@ from kerykeion.schemas.kr_literals import (
     VedicDignity,
     Auspiciousness,
     Gana,
+    Guna,
+    Tattva,
     Nadi,
     NakshatraQuality,
 )
@@ -393,6 +395,8 @@ class KerykeionPointModel(SubscriptableBaseModel):
     name: Union[AstrologicalPoint, Houses]
     quality: Quality
     element: Element
+    guna: Optional[Guna] = Field(default=None, description="Vedic quality (Guna) of the sign.")
+    tattva: Optional[Tattva] = Field(default=None, description="Vedic element (Tattva) of the sign.")
     sign: Sign
     sign_num: SignNumbers
     position: float
@@ -967,6 +971,8 @@ class ZodiacSignModel(SubscriptableBaseModel):
     sign: Sign
     quality: Quality
     element: Element
+    guna: Optional[Guna] = Field(default=None, description="Vedic quality (Guna) of the sign.")
+    tattva: Optional[Tattva] = Field(default=None, description="Vedic element (Tattva) of the sign.")
     emoji: SignsEmoji
     sign_num: SignNumbers
 
@@ -1028,6 +1034,18 @@ class TransitMomentModel(SubscriptableBaseModel):
     aspects: List[AspectModel] = Field(description="List of aspects active at this specific moment.")
 
 
+class VedicAspectModel(SubscriptableBaseModel):
+    """
+    Model representing a Vedic sign-based aspect (Graha Drishti).
+    """
+
+    p1_name: str = Field(description="Name of the planet casting the aspect.")
+    p2_name: str = Field(description="Name of the planet/point receiving the aspect.")
+    aspect: str = Field(description="Type of Vedic aspect (e.g., 'Full Aspect (7th)').")
+    p1_sign: str = Field(description="Sign of the casting planet.")
+    p2_sign: str = Field(description="Sign of the receiving planet.")
+
+
 class SingleChartAspectsModel(SubscriptableBaseModel):
     """
     Model representing all aspects within a single astrological chart.
@@ -1047,6 +1065,9 @@ class SingleChartAspectsModel(SubscriptableBaseModel):
     )
     aspects: List[AspectModel] = Field(
         description="List of calculated aspects within the chart, filtered based on orb settings."
+    )
+    vedic_aspects: List[VedicAspectModel] = Field(
+        default_factory=list, description="List of sign-based Vedic aspects (Drishti)."
     )
     active_points: List[AstrologicalPoint] = Field(description="List of active points used in the calculation.")
     active_aspects: List["ActiveAspect"] = Field(description="List of active aspects with their orb settings.")
@@ -1074,6 +1095,9 @@ class DualChartAspectsModel(SubscriptableBaseModel):
     )
     aspects: List[AspectModel] = Field(
         description="List of calculated aspects between the two charts, filtered based on orb settings."
+    )
+    vedic_aspects: List[VedicAspectModel] = Field(
+        default_factory=list, description="List of sign-based Vedic aspects (Drishti)."
     )
     active_points: List[AstrologicalPoint] = Field(description="List of active points used in the calculation.")
     active_aspects: List["ActiveAspect"] = Field(description="List of active aspects with their orb settings.")
@@ -1227,6 +1251,7 @@ class SingleChartDataModel(SubscriptableBaseModel):
         chart_type: Type of single chart (Natal, Composite, SingleReturnChart)
         subject: The astrological subject being analyzed
         aspects: Internal aspects within the chart
+        vedic_aspects: Vedic sign-based aspects (Graha Drishti)
         element_distribution: Distribution of elemental energies
         quality_distribution: Distribution of modal qualities
         active_points: Celestial points included in calculations
@@ -1241,6 +1266,7 @@ class SingleChartDataModel(SubscriptableBaseModel):
 
     # Internal aspects analysis
     aspects: List[AspectModel]
+    vedic_aspects: List[VedicAspectModel] = Field(default_factory=list)
 
     # Element and quality distributions
     element_distribution: "ElementDistributionModel"
@@ -1270,6 +1296,7 @@ class DualChartDataModel(SubscriptableBaseModel):
         first_subject: Primary astrological subject (natal, base chart)
         second_subject: Secondary astrological subject (transit, partner, return)
         aspects: Inter-chart aspects between the two subjects
+        vedic_aspects: Vedic sign-based aspects (Graha Drishti)
         house_comparison: House overlay analysis between subjects
         relationship_score: Compatibility scoring (synastry only)
         element_distribution: Combined elemental distribution
@@ -1287,6 +1314,7 @@ class DualChartDataModel(SubscriptableBaseModel):
 
     # Inter-chart aspects analysis
     aspects: List[AspectModel]
+    vedic_aspects: List[VedicAspectModel] = Field(default_factory=list)
 
     # House comparison analysis
     house_comparison: Optional["HouseComparisonModel"] = None

@@ -158,11 +158,29 @@ Fixed Stars (23 total, expanded in v5.12 from 2):
 
 
 Element: TypeAlias = Literal["Air", "Fire", "Earth", "Water"]
-"""Literal type for Elements"""
+"""Literal type for Elements (Western)"""
 
 
 Quality: TypeAlias = Literal["Cardinal", "Fixed", "Mutable"]
-"""Literal type for Qualities"""
+"""Literal type for Qualities (Western)"""
+
+
+Tattva: TypeAlias = Literal[
+    "Agni (Fire)",
+    "Prithvi (Earth)",
+    "Vayu (Air)",
+    "Jala (Water)",
+    "Akasha (Ether)",
+]
+"""Literal type for Vedic elements (Tattvas)"""
+
+
+Guna: TypeAlias = Literal[
+    "Sattva (Mutable)",
+    "Rajas (Cardinal)",
+    "Tamas (Fixed)",
+]
+"""Literal type for Vedic qualities (Gunas)"""
 
 
 ChartType: TypeAlias = Literal["Natal", "Synastry", "Transit", "Composite", "DualReturnChart", "SingleReturnChart"]
@@ -380,6 +398,18 @@ AspectName: TypeAlias = Literal[
     "opposition",
 ]
 """Literal type for all the available aspects names"""
+
+
+VedicAspectName: TypeAlias = Literal[
+    "Full Aspect (7th)",
+    "Special 4th Aspect",
+    "Special 8th Aspect",
+    "Special 5th Aspect",
+    "Special 9th Aspect",
+    "Special 3rd Aspect",
+    "Special 10th Aspect",
+]
+"""Literal type for Vedic Graha Drishti (Planetary Aspects)"""
 
 ReturnType: TypeAlias = Literal["Lunar", "Solar"]
 """Literal type for Return Types"""

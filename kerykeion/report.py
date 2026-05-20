@@ -818,15 +818,28 @@ class ReportGenerator:
         if total == 0:
             return ""
 
-        element_data = [
-            ["Element", "Count", "Percentage"],
-            ["Fire 🔥", elem.fire, f"{(elem.fire / total * 100):.1f}%"],
-            ["Earth 🌍", elem.earth, f"{(elem.earth / total * 100):.1f}%"],
-            ["Air 💨", elem.air, f"{(elem.air / total * 100):.1f}%"],
-            ["Water 💧", elem.water, f"{(elem.water / total * 100):.1f}%"],
-            ["Total", total, "100%"],
-        ]
-        return AsciiTable(element_data, title="Element Distribution").table
+        if self.paradigm == "Vedic":
+            element_data = [
+                ["Tattva (Element)", "Count", "Percentage"],
+                ["Agni (Fire) 🔥", elem.fire, f"{(elem.fire / total * 100):.1f}%"],
+                ["Prithvi (Earth) 🌍", elem.earth, f"{(elem.earth / total * 100):.1f}%"],
+                ["Vayu (Air) 💨", elem.air, f"{(elem.air / total * 100):.1f}%"],
+                ["Jala (Water) 💧", elem.water, f"{(elem.water / total * 100):.1f}%"],
+                ["Total", total, "100%"],
+            ]
+            title = "Tattva Distribution (Vedic Elements)"
+        else:
+            element_data = [
+                ["Element", "Count", "Percentage"],
+                ["Fire 🔥", elem.fire, f"{(elem.fire / total * 100):.1f}%"],
+                ["Earth 🌍", elem.earth, f"{(elem.earth / total * 100):.1f}%"],
+                ["Air 💨", elem.air, f"{(elem.air / total * 100):.1f}%"],
+                ["Water 💧", elem.water, f"{(elem.water / total * 100):.1f}%"],
+                ["Total", total, "100%"],
+            ]
+            title = "Element Distribution"
+
+        return AsciiTable(element_data, title=title).table
 
     def _qualities_report(self) -> str:
         if not self._chart_data or not getattr(self._chart_data, "quality_distribution", None):
@@ -837,14 +850,26 @@ class ReportGenerator:
         if total == 0:
             return ""
 
-        quality_data = [
-            ["Quality", "Count", "Percentage"],
-            ["Cardinal", qual.cardinal, f"{(qual.cardinal / total * 100):.1f}%"],
-            ["Fixed", qual.fixed, f"{(qual.fixed / total * 100):.1f}%"],
-            ["Mutable", qual.mutable, f"{(qual.mutable / total * 100):.1f}%"],
-            ["Total", total, "100%"],
-        ]
-        return AsciiTable(quality_data, title="Quality Distribution").table
+        if self.paradigm == "Vedic":
+            quality_data = [
+                ["Guna (Quality)", "Count", "Percentage"],
+                ["Rajas (Cardinal)", qual.cardinal, f"{(qual.cardinal / total * 100):.1f}%"],
+                ["Tamas (Fixed)", qual.fixed, f"{(qual.fixed / total * 100):.1f}%"],
+                ["Sattva (Mutable)", qual.mutable, f"{(qual.mutable / total * 100):.1f}%"],
+                ["Total", total, "100%"],
+            ]
+            title = "Guna Distribution (Vedic Qualities)"
+        else:
+            quality_data = [
+                ["Quality", "Count", "Percentage"],
+                ["Cardinal", qual.cardinal, f"{(qual.cardinal / total * 100):.1f}%"],
+                ["Fixed", qual.fixed, f"{(qual.fixed / total * 100):.1f}%"],
+                ["Mutable", qual.mutable, f"{(qual.mutable / total * 100):.1f}%"],
+                ["Total", total, "100%"],
+            ]
+            title = "Quality Distribution"
+
+        return AsciiTable(quality_data, title=title).table
 
     def _shadbala_report(self, subject: SubjectLike) -> str:
         shadbala = getattr(subject, "shadbala", None)
@@ -994,57 +1019,80 @@ class ReportGenerator:
         return "\n\n".join(sections)
 
     def _aspects_report(self, *, max_aspects: Optional[int]) -> str:
-        if not self._chart_data or not getattr(self._chart_data, "aspects", None):
+        if not self._chart_data:
             return ""
 
-        aspects_list = list(self._chart_data.aspects)
+        # Paradigm-specific selection
+        if self.paradigm == "Vedic":
+            # Use sign-based Graha Drishti
+            aspects_list = list(getattr(self._chart_data, "vedic_aspects", []))
+            if not aspects_list:
+                return "No Vedic aspects (Drishti) data available."
 
-        if not aspects_list:
-            return "No aspects data available."
+            table_header = ["Planet 1", "Drishti (Glance)", "Planet 2", "P1 Sign", "P2 Sign"]
+            aspects_table: List[List[str]] = [table_header]
 
-        total_aspects = len(aspects_list)
-        if max_aspects is not None:
-            aspects_list = aspects_list[:max_aspects]
+            for v_asp in aspects_list:
+                aspects_table.append([
+                    v_asp.p1_name.replace("_", " "),
+                    v_asp.aspect,
+                    v_asp.p2_name.replace("_", " "),
+                    v_asp.p1_sign,
+                    v_asp.p2_sign
+                ])
+            
+            title = "Graha Drishti (Vedic Planetary Aspects)"
+            return AsciiTable(aspects_table, title=title).table
 
-        is_dual = isinstance(self._chart_data, DualChartDataModel)
-        if is_dual:
-            table_header: List[str] = ["Point 1", "Owner 1", "Aspect", "Point 2", "Owner 2", "Orb", "Movement"]
         else:
-            table_header = ["Point 1", "Aspect", "Point 2", "Orb", "Movement"]
+            # Standard Western/Ptolemaic Aspects
+            aspects_list = list(getattr(self._chart_data, "aspects", []))
+            if not aspects_list:
+                return "No aspects data available."
 
-        aspects_table: List[List[str]] = [table_header]
-        for aspect in aspects_list:
-            aspect_name = str(aspect.aspect)
-            symbol = ASPECT_SYMBOLS.get(aspect_name.lower(), aspect_name)
-            movement_symbol = MOVEMENT_SYMBOLS.get(aspect.aspect_movement, "")
-            movement = f"{aspect.aspect_movement} {movement_symbol}".strip()
+            total_aspects = len(aspects_list)
+            if max_aspects is not None:
+                aspects_list = aspects_list[:max_aspects]
 
+            is_dual = isinstance(self._chart_data, DualChartDataModel)
             if is_dual:
-                aspects_table.append(
-                    [
-                        aspect.p1_name.replace("_", " "),
-                        aspect.p1_owner,
-                        f"{aspect.aspect} {symbol}",
-                        aspect.p2_name.replace("_", " "),
-                        aspect.p2_owner,
-                        f"{aspect.orbit:.2f}°",
-                        movement,
-                    ]
-                )
+                table_header = ["Point 1", "Owner 1", "Aspect", "Point 2", "Owner 2", "Orb", "Movement"]
             else:
-                aspects_table.append(
-                    [
-                        aspect.p1_name.replace("_", " "),
-                        f"{aspect.aspect} {symbol}",
-                        aspect.p2_name.replace("_", " "),
-                        f"{aspect.orbit:.2f}°",
-                        movement,
-                    ]
-                )
+                table_header = ["Point 1", "Aspect", "Point 2", "Orb", "Movement"]
 
-        suffix = f" (showing {len(aspects_list)} of {total_aspects})" if max_aspects is not None else ""
-        title = f"Aspects{suffix}"
-        return AsciiTable(aspects_table, title=title).table
+            aspects_table = [table_header]
+            for aspect in aspects_list:
+                aspect_name = str(aspect.aspect)
+                symbol = ASPECT_SYMBOLS.get(aspect_name.lower(), aspect_name)
+                movement_symbol = MOVEMENT_SYMBOLS.get(aspect.aspect_movement, "")
+                movement = f"{aspect.aspect_movement} {movement_symbol}".strip()
+
+                if is_dual:
+                    aspects_table.append(
+                        [
+                            aspect.p1_name.replace("_", " "),
+                            aspect.p1_owner,
+                            f"{aspect.aspect} {symbol}",
+                            aspect.p2_name.replace("_", " "),
+                            aspect.p2_owner,
+                            f"{aspect.orbit:.2f}°",
+                            movement,
+                        ]
+                    )
+                else:
+                    aspects_table.append(
+                        [
+                            aspect.p1_name.replace("_", " "),
+                            f"{aspect.aspect} {symbol}",
+                            aspect.p2_name.replace("_", " "),
+                            f"{aspect.orbit:.2f}°",
+                            movement,
+                        ]
+                    )
+
+            suffix = f" (showing {len(aspects_list)} of {total_aspects})" if max_aspects is not None else ""
+            title = f"Aspects{suffix}"
+            return AsciiTable(aspects_table, title=title).table
 
     def _house_comparison_report(self) -> str:
         if not isinstance(self._chart_data, DualChartDataModel) or not self._chart_data.house_comparison:

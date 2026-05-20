@@ -75,18 +75,42 @@ _POINT_NUMBER_MAP: dict[str, int] = {
 
 # Zodiac sign properties lookup table
 _ZODIAC_SIGNS: dict[int, ZodiacSignModel] = {
-    0: ZodiacSignModel(sign="Ari", quality="Cardinal", element="Fire", emoji="♈️", sign_num=0),
-    1: ZodiacSignModel(sign="Tau", quality="Fixed", element="Earth", emoji="♉️", sign_num=1),
-    2: ZodiacSignModel(sign="Gem", quality="Mutable", element="Air", emoji="♊️", sign_num=2),
-    3: ZodiacSignModel(sign="Can", quality="Cardinal", element="Water", emoji="♋️", sign_num=3),
-    4: ZodiacSignModel(sign="Leo", quality="Fixed", element="Fire", emoji="♌️", sign_num=4),
-    5: ZodiacSignModel(sign="Vir", quality="Mutable", element="Earth", emoji="♍️", sign_num=5),
-    6: ZodiacSignModel(sign="Lib", quality="Cardinal", element="Air", emoji="♎️", sign_num=6),
-    7: ZodiacSignModel(sign="Sco", quality="Fixed", element="Water", emoji="♏️", sign_num=7),
-    8: ZodiacSignModel(sign="Sag", quality="Mutable", element="Fire", emoji="♐️", sign_num=8),
-    9: ZodiacSignModel(sign="Cap", quality="Cardinal", element="Earth", emoji="♑️", sign_num=9),
-    10: ZodiacSignModel(sign="Aqu", quality="Fixed", element="Air", emoji="♒️", sign_num=10),
-    11: ZodiacSignModel(sign="Pis", quality="Mutable", element="Water", emoji="♓️", sign_num=11),
+    0: ZodiacSignModel(
+        sign="Ari", quality="Cardinal", element="Fire", guna="Rajas (Cardinal)", tattva="Agni (Fire)", emoji="♈️", sign_num=0
+    ),
+    1: ZodiacSignModel(
+        sign="Tau", quality="Fixed", element="Earth", guna="Tamas (Fixed)", tattva="Prithvi (Earth)", emoji="♉️", sign_num=1
+    ),
+    2: ZodiacSignModel(
+        sign="Gem", quality="Mutable", element="Air", guna="Sattva (Mutable)", tattva="Vayu (Air)", emoji="♊️", sign_num=2
+    ),
+    3: ZodiacSignModel(
+        sign="Can", quality="Cardinal", element="Water", guna="Rajas (Cardinal)", tattva="Jala (Water)", emoji="♋️", sign_num=3
+    ),
+    4: ZodiacSignModel(
+        sign="Leo", quality="Fixed", element="Fire", guna="Tamas (Fixed)", tattva="Agni (Fire)", emoji="♌️", sign_num=4
+    ),
+    5: ZodiacSignModel(
+        sign="Vir", quality="Mutable", element="Earth", guna="Sattva (Mutable)", tattva="Prithvi (Earth)", emoji="♍️", sign_num=5
+    ),
+    6: ZodiacSignModel(
+        sign="Lib", quality="Cardinal", element="Air", guna="Rajas (Cardinal)", tattva="Vayu (Air)", emoji="♎️", sign_num=6
+    ),
+    7: ZodiacSignModel(
+        sign="Sco", quality="Fixed", element="Water", guna="Tamas (Fixed)", tattva="Jala (Water)", emoji="♏️", sign_num=7
+    ),
+    8: ZodiacSignModel(
+        sign="Sag", quality="Mutable", element="Fire", guna="Sattva (Mutable)", tattva="Agni (Fire)", emoji="♐️", sign_num=8
+    ),
+    9: ZodiacSignModel(
+        sign="Cap", quality="Cardinal", element="Earth", guna="Rajas (Cardinal)", tattva="Prithvi (Earth)", emoji="♑️", sign_num=9
+    ),
+    10: ZodiacSignModel(
+        sign="Aqu", quality="Fixed", element="Air", guna="Tamas (Fixed)", tattva="Vayu (Air)", emoji="♒️", sign_num=10
+    ),
+    11: ZodiacSignModel(
+        sign="Pis", quality="Mutable", element="Water", guna="Sattva (Mutable)", tattva="Jala (Water)", emoji="♓️", sign_num=11
+    ),
 }
 
 # House name mappings
@@ -249,6 +273,8 @@ def get_kerykeion_point_from_degree(
         name=name,
         quality=zodiac_sign.quality,
         element=zodiac_sign.element,
+        guna=zodiac_sign.guna,
+        tattva=zodiac_sign.tattva,
         sign=zodiac_sign.sign,
         sign_num=zodiac_sign.sign_num,
         position=sign_degree,

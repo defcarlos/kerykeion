@@ -319,10 +319,12 @@ class ChartDataFactory:
         # Create and return the appropriate chart data model
         if chart_type in ["Natal", "Composite", "SingleReturnChart"]:
             # Single chart data model - cast types since they're already validated
+            s_aspects = cast(SingleChartAspectsModel, aspects_model)
             return SingleChartDataModel(
                 chart_type=cast(Literal["Natal", "Composite", "SingleReturnChart"], chart_type),
                 subject=first_subject,
-                aspects=cast(SingleChartAspectsModel, aspects_model).aspects,
+                aspects=s_aspects.aspects,
+                vedic_aspects=s_aspects.vedic_aspects,
                 element_distribution=element_distribution,
                 quality_distribution=quality_distribution,
                 active_points=effective_active_points,
@@ -332,11 +334,13 @@ class ChartDataFactory:
             # Dual chart data model - cast types since they're already validated
             if second_subject is None:
                 raise KerykeionException(f"Second subject is required for {chart_type} charts.")
+            d_aspects = cast(DualChartAspectsModel, aspects_model)
             return DualChartDataModel(
                 chart_type=cast(Literal["Transit", "Synastry", "DualReturnChart"], chart_type),
                 first_subject=first_subject,
                 second_subject=second_subject,
-                aspects=cast(DualChartAspectsModel, aspects_model).aspects,
+                aspects=d_aspects.aspects,
+                vedic_aspects=d_aspects.vedic_aspects,
                 house_comparison=house_comparison,
                 relationship_score=relationship_score,
                 element_distribution=element_distribution,

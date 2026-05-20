@@ -12,6 +12,7 @@ from kerykeion.aspects.aspects_utils import (
     get_active_points_list,
     calculate_aspect_movement,
 )
+from kerykeion.aspects.vedic_aspects import get_graha_drishti
 from kerykeion.schemas.kr_models import (
     AstrologicalSubjectModel,
     AspectModel,
@@ -227,9 +228,12 @@ class AspectsFactory:
             apply_axis_orb_filter=axis_orb_limit is not None,
         )
 
+        vedic_aspects = get_graha_drishti(subject)
+
         return SingleChartAspectsModel(
             subject=subject,
             aspects=filtered_aspects,
+            vedic_aspects=vedic_aspects,
             active_points=active_points_resolved,
             active_aspects=active_aspects_resolved,
         )
@@ -277,10 +281,14 @@ class AspectsFactory:
             apply_axis_orb_filter=False,
         )
 
+        # Vedic Aspects for first subject (primary lens)
+        vedic_aspects = get_graha_drishti(first_subject)
+
         return DualChartAspectsModel(
             first_subject=first_subject,
             second_subject=second_subject,
             aspects=filtered_aspects,
+            vedic_aspects=vedic_aspects,
             active_points=active_points_resolved,
             active_aspects=active_aspects_resolved,
         )
