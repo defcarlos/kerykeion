@@ -729,6 +729,10 @@ class AstrologicalBaseModel(SubscriptableBaseModel):
         default=None,
         description="Sidereal mode used for Nakshatra calculations.",
     )
+    nakshatra_ayanamsa_value: Optional[float] = Field(
+        default=None,
+        description="Ayanamsa offset used specifically for Nakshatra calculations.",
+    )
 
     # Common celestial points
     # Main planets (all optional to support selective calculations)
