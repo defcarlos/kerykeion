@@ -587,3 +587,7 @@ Planet: TypeAlias = AstrologicalPoint
 
 AxialCusps: TypeAlias = AstrologicalPoint
 """DEPRECATED: Use AstrologicalPoint instead. This alias will be removed in v6.0."""
+
+
+DashaLevel: TypeAlias = Literal["Mahadasha", "Antardasha", "Pratyantardasha"]
+"""Literal type for the three levels of Vimsottari Dasha calculation."""

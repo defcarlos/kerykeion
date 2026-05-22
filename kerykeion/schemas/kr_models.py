@@ -65,6 +65,7 @@ from kerykeion.schemas.kr_literals import (
     Tattva,
     Nadi,
     NakshatraQuality,
+    DashaLevel,
 )
 
 
@@ -608,6 +609,52 @@ class ShadbalaModel(SubscriptableBaseModel):
     saturn: PlanetaryShadbalaModel
 
 
+class DashaPeriodModel(SubscriptableBaseModel):
+    """
+    Base model for a Vimsottari Dasha period.
+    """
+
+    lord: NakshatraLord = Field(description="The planetary lord of this period.")
+    level: DashaLevel = Field(description="The level of the dasha (Mahadasha, Antardasha, etc.).")
+    start_date: str = Field(description="Start date of the period in ISO UTC format.")
+    end_date: str = Field(description="End date of the period in ISO UTC format.")
+    duration_days: float = Field(description="Total duration of the period in days.")
+
+
+class PratyantardashaModel(DashaPeriodModel):
+    """
+    Model representing a Pratyantardasha (sub-sub-period).
+    """
+
+    pass
+
+
+class AntardashaModel(DashaPeriodModel):
+    """
+    Model representing an Antardasha (sub-period).
+    """
+
+    pratyantardashas: List[PratyantardashaModel] = Field(
+        description="List of Pratyantardashas within this Antardasha."
+    )
+
+
+class MahadashaModel(DashaPeriodModel):
+    """
+    Model representing a Mahadasha (major period).
+    """
+
+    antardashas: List[AntardashaModel] = Field(description="List of Antardashas within this Mahadasha.")
+
+
+class VimsottariDashaModel(SubscriptableBaseModel):
+    """
+    Model representing the complete Vimsottari Dasha system for a chart.
+    """
+
+    mahadashas: List[MahadashaModel] = Field(description="Complete sequence of Mahadashas.")
+
+
 class AstrologicalBaseModel(SubscriptableBaseModel):
     """
     Base model containing common fields for all astrological subjects.
@@ -801,6 +848,11 @@ class AstrologicalBaseModel(SubscriptableBaseModel):
     # Shadbala (Six-fold Strength)
     shadbala: Optional[ShadbalaModel] = Field(
         default=None, description="Shadbala (Six-fold Strength) data for traditional planets."
+    )
+
+    # Vimsottari Dasha (Predictive Timing)
+    dasha: Optional[VimsottariDashaModel] = Field(
+        default=None, description="Vimsottari Dasha (Predictive Timing) periods."
     )
 
 
@@ -1342,4 +1394,9 @@ TithiModel.model_rebuild()
 YogaModel.model_rebuild()
 KaranaModel.model_rebuild()
 PanchangModel.model_rebuild()
+DashaPeriodModel.model_rebuild()
+PratyantardashaModel.model_rebuild()
+AntardashaModel.model_rebuild()
+MahadashaModel.model_rebuild()
+VimsottariDashaModel.model_rebuild()
 AstrologicalSubjectModel.model_rebuild()

@@ -115,7 +115,31 @@ The `panchang` attribute on `AstrologicalSubject` provides the Vedic time-keepin
 
 ---
 
-## 5. Divisional Charts (Vargas)
+## 6. Vimsottari Dasha Engine (Predictive Timing)
+
+Kerykeion implements a full-lifecycle Vimsottari Dasha system, calculating the nested planetary cycles that dictate timing in Vedic astrology.
+
+### Features:
+- **Hierarchical Calculation:** Supports Mahadasha (major), Antardasha (minor), and Pratyantardasha (sub-minor) levels.
+- **Precision Timing:** Uses Julian Day arithmetic for exact period boundaries, avoiding Gregorian drift.
+- **Auto-Reference:** The `ReportGenerator` automatically identifies the active period for the subject's birth or current time.
+
+**Code Example:**
+```python
+subject = AstrologicalSubjectFactory.from_birth_data(...)
+
+# Access the first Mahadasha (the birth lord)
+first_md = subject.dasha.mahadashas[0]
+print(f"Birth Mahadasha: {first_md.lord} until {first_md.end_date}")
+
+# Access Antardashas within that Mahadasha
+for ad in first_md.antardashas:
+    print(f"  Antardasha: {ad.lord} starts at {ad.start_date}")
+```
+
+---
+
+## 7. Divisional Charts (Vargas)
 
 Vedic astrology uses divisional charts to see specific areas of life. Kerykeion calculates the **Saptavarga** (7 main divisions):
 - **D1 (Rasi):** Main chart.
@@ -129,7 +153,7 @@ Vedic astrology uses divisional charts to see specific areas of life. Kerykeion 
 
 ---
 
-## 6. Tattvas, Gunas, and Rulerships
+## 8. Tattvas, Gunas, and Rulerships
 
 The library automatically renames and recalculates core classifications when the Vedic paradigm is active:
 
@@ -141,7 +165,7 @@ The library automatically renames and recalculates core classifications when the
 
 ---
 
-## 7. Utilities & Helpers
+## 9. Utilities & Helpers
 
 - `vedic_utils.get_vedic_dignity()`: Sign-based dignity (Exalted, Friend, Neutral, Enemy, etc.).
 - `nakshatra_utils.get_nakshatra_data()`: Full classification (Gana, Yoni, Nadi, Quality).

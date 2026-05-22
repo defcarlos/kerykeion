@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Sequence, Tuple, Union, Literal
 
 from simple_ascii_tables import AsciiTable
@@ -200,6 +200,7 @@ class ReportGenerator:
                 self._houses_report(self._primary_subject, "Houses"),
                 self._lunar_phase_report(self._primary_subject),
                 self._panchang_report(self._primary_subject),
+                self._vimsottari_dasha_report(self._primary_subject),
             ]
         )
         return sections
@@ -360,6 +361,7 @@ class ReportGenerator:
             [
                 self._lunar_phase_report(self._primary_subject),
                 self._panchang_report(self._primary_subject),
+                self._vimsottari_dasha_report(self._primary_subject),
                 self._elements_report(),
                 self._qualities_report(),
                 self._active_configuration_report(),
@@ -416,6 +418,7 @@ class ReportGenerator:
             [
                 self._lunar_phase_report(self._primary_subject),
                 self._panchang_report(self._primary_subject),
+                self._vimsottari_dasha_report(self._primary_subject),
                 self._elements_report(),
                 self._qualities_report(),
                 self._house_comparison_report(),
@@ -500,6 +503,74 @@ class ReportGenerator:
         table = AsciiTable(panchang_data, title="Panchang (Five Limbs of Time)").table
         desc = f"\nDescription: {panchang.tithi.description or 'No description available.'}"
         return f"{table}\n{desc}"
+
+    def _vimsottari_dasha_report(self, subject: SubjectLike) -> str:
+        dasha = getattr(subject, "dasha", None)
+        if not dasha or not dasha.mahadashas:
+            return ""
+
+        # Use birth time as reference for "current" dasha in report
+        ref_time_str = getattr(subject, "iso_formatted_utc_datetime", None)
+        if not ref_time_str:
+            ref_time = datetime.now(timezone.utc)
+        else:
+            ref_time = datetime.fromisoformat(ref_time_str.replace("Z", "+00:00"))
+
+        def get_active_periods(ref: datetime):
+            # Find active Mahadasha
+            for m in dasha.mahadashas:
+                m_start = datetime.fromisoformat(m.start_date.replace("Z", "+00:00"))
+                m_end = datetime.fromisoformat(m.end_date.replace("Z", "+00:00"))
+                if m_start <= ref < m_end:
+                    # Find active Antardasha
+                    for a in m.antardashas:
+                        a_start = datetime.fromisoformat(a.start_date.replace("Z", "+00:00"))
+                        a_end = datetime.fromisoformat(a.end_date.replace("Z", "+00:00"))
+                        if a_start <= ref < a_end:
+                            # Find active Pratyantardasha
+                            for p in a.pratyantardashas:
+                                p_start = datetime.fromisoformat(p.start_date.replace("Z", "+00:00"))
+                                p_end = datetime.fromisoformat(p.end_date.replace("Z", "+00:00"))
+                                if p_start <= ref < p_end:
+                                    return m, a, p
+                    return m, None, None
+            return None, None, None
+
+        m_active, a_active, p_active = get_active_periods(ref_time)
+
+        # Summary Table of Mahadashas
+        m_table_data = [["Lord", "Start Date", "End Date", "Status"]]
+        for m in dasha.mahadashas:
+            status = ""
+            if m == m_active:
+                status = "ACTIVE"
+            elif datetime.fromisoformat(m.end_date.replace("Z", "+00:00")) < ref_time:
+                status = "Past"
+            else:
+                status = "Future"
+
+            m_table_data.append([m.lord, m.start_date[:10], m.end_date[:10], status])
+
+        m_table = AsciiTable(m_table_data, title="Vimsottari Mahadasha Cycles").table
+
+        # Current detailed breakdown
+        if m_active and a_active:
+            detail_data = [
+                ["Level", "Lord", "Start", "End"],
+                ["Mahadasha", m_active.lord, m_active.start_date[:10], m_active.end_date[:10]],
+                ["Antardasha", a_active.lord, a_active.start_date[:10], a_active.end_date[:10]],
+            ]
+            if p_active:
+                detail_data.append(
+                    ["Pratyantar", p_active.lord, p_active.start_date[:10], p_active.end_date[:10]]
+                )
+
+            detail_table = AsciiTable(
+                detail_data, title=f"Active Dasha at {ref_time.strftime('%Y-%m-%d')}"
+            ).table
+            return f"{m_table}\n\n{detail_table}"
+
+        return m_table
 
     def _nakshatra_positions_report(self, subject: SubjectLike) -> str:
         points = self._collect_celestial_points(subject)

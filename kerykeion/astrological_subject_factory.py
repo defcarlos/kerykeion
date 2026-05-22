@@ -1030,9 +1030,20 @@ class AstrologicalSubjectFactory:
         # Calculate Shadbala (Six-fold Strength)
         try:
             from kerykeion.shadbala_factory import ShadbalaFactory
+
             subject.shadbala = ShadbalaFactory(subject).calculate()
         except Exception as e:
             logging.warning(f"Could not calculate Shadbala: {e}")
+
+        # Calculate Vimsottari Dasha (Predictive Timing)
+        try:
+            from kerykeion.dasha_factory import VimsottariDashaFactory
+
+            subject.dasha = VimsottariDashaFactory(subject).calculate()
+        except Exception as e:
+            logging.warning(f"Could not calculate Vimsottari Dasha: {e}")
+            subject.dasha = None
+
 
         return subject
 
