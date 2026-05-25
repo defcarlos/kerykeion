@@ -230,6 +230,8 @@ def get_kerykeion_point_from_degree(
     speed: Optional[float] = None,
     declination: Optional[float] = None,
     magnitude: Optional[float] = None,
+    is_vakra: Optional[bool] = None,
+    is_combust: Optional[bool] = None,
     nakshatra_ayanamsa_value: Optional[float] = None,
 ) -> KerykeionPointModel:
     """
@@ -242,6 +244,8 @@ def get_kerykeion_point_from_degree(
         speed: The velocity/speed of the celestial point in degrees per day (optional)
         declination: The declination of the celestial point in degrees (optional)
         magnitude: The apparent visual magnitude for fixed stars (optional)
+        is_vakra: Whether the point is retrograde (Vakra) (optional)
+        is_combust: Whether the point is combust (Asta) (optional)
         nakshatra_ayanamsa_value: The ayanamsa value to use for Nakshatra calculation (optional)
 
     Returns:
@@ -284,6 +288,8 @@ def get_kerykeion_point_from_degree(
         speed=speed,
         declination=declination,
         magnitude=magnitude,
+        is_vakra=is_vakra,
+        is_combust=is_combust,
         western_dignity=western_dignity,
         vedic_dignity=vedic_dignity,
         dignity=vedic_dignity,  # Legacy support

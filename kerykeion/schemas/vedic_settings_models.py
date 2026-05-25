@@ -26,3 +26,4 @@ class VedicChartConfigModel(SubscriptableBaseModel):
     planet_color: str = Field(default="#000000", description="Color of the planet symbols")
     label_color: str = Field(default="#555555", description="Color of the labels (sign/house numbers)")
     padding: int = Field(default=20, description="Padding around the chart grid")
+    zodiac_glyph_scale: float = Field(default=0.8, description="Scale for zodiac sign glyphs")

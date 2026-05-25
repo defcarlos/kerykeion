@@ -52,9 +52,9 @@ class BaseVedicDrawer(ABC):
             "Descendant": "Descendant",
             "Imum_Coeli": "Imum_Coeli",
             # Signs
-            "Aries": "Aries", "Taurus": "Taurus", "Gemini": "Gemini", "Cancer": "Cancer",
-            "Leo": "Leo", "Virgo": "Virgo", "Libra": "Libra", "Scorpio": "Scorpio",
-            "Sagittarius": "Sagittarius", "Capricorn": "Capricorn", "Aquarius": "Aquarius", "Pisces": "Pisces"
+            "Aries": "Ari", "Taurus": "Tau", "Gemini": "Gem", "Cancer": "Can",
+            "Leo": "Leo", "Virgo": "Vir", "Libra": "Lib", "Scorpio": "Sco",
+            "Sagittarius": "Sag", "Capricorn": "Cap", "Aquarius": "Aqu", "Pisces": "Pis"
         }
 
         self.sign_names = [
@@ -154,10 +154,13 @@ class BaseVedicDrawer(ABC):
             f"  </g>\n"
         )
 
-    def _draw_sign_glyph(self, sign_num: int, x: float, y: float, scale: float = 0.4, opacity: float = 1.0) -> str:
+    def _draw_sign_glyph(self, sign_num: int, x: float, y: float, scale: float = None, opacity: float = 1.0) -> str:
         """
         Draws a sign glyph with theme color.
         """
+        if scale is None:
+            scale = self.config.zodiac_glyph_scale
+
         sign_idx = sign_num - 1
         name = self.sign_names[sign_idx]
         symbol_id = self.point_to_symbol.get(name, name)
@@ -231,7 +234,7 @@ class NorthIndianDrawer(BaseVedicDrawer):
         if self.config.show_labels:
             for i in range(12):
                 hx, hy = centers[i]
-                svg += self._draw_sign_glyph(house_sign_nums[i], hx, hy + 22, scale=0.5)
+                svg += self._draw_sign_glyph(house_sign_nums[i], hx, hy + 25)
 
         # Group planets by relative house
         houses_planets: Dict[int, List[str]] = {i: [] for i in range(1, 13)}
@@ -289,7 +292,7 @@ class SouthIndianDrawer(BaseVedicDrawer):
             sx, sy = centers[i]
             cw, ch = (w - 2 * p) / 4, (h - 2 * p) / 4
             bx, by = sx - cw / 2 + 15, sy - ch / 2 + 15
-            svg += self._draw_sign_glyph(i + 1, bx, by, scale=0.3, opacity=0.6)
+            svg += self._draw_sign_glyph(i + 1, bx, by, opacity=0.6)
 
         # Place planets
         signs_planets: Dict[int, List[str]] = {i: [] for i in range(1, 13)}
@@ -361,7 +364,7 @@ class SudarshanaDrawer(BaseVedicDrawer):
             for i in range(12):
                 sx, sy = centers[i]
                 sign_num = (ref_sign_num + i) % 12 + 1
-                svg += self._draw_sign_glyph(sign_num, sx, sy + 25, scale=0.3, opacity=0.8)
+                svg += self._draw_sign_glyph(sign_num, sx, sy + 25, opacity=0.8)
 
             # Group planets
             house_planets: Dict[int, List[str]] = {i: [] for i in range(1, 13)}

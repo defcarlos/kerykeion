@@ -27,6 +27,7 @@ access to fields while maintaining Pydantic validation.
 This is part of Kerykeion (C) 2025 Giacomo Battaglia
 """
 
+from datetime import datetime
 from typing import Union, Optional, List, Literal, Dict
 from typing_extensions import TypedDict
 from pydantic import BaseModel, Field
@@ -391,6 +392,8 @@ class KerykeionPointModel(SubscriptableBaseModel):
             e.g. Sirius = -1.46, Regulus = 1.35). Only populated for fixed
             star points; ``None`` for planets and calculated points. Retrieved
             via ``swe.fixstar2_mag``. Added in v5.12.
+        is_combust: Whether the point is combust (Asta) due to proximity to the Sun.
+        is_vakra: Whether the point is in retrograde motion (Vakra).
     """
 
     name: Union[AstrologicalPoint, Houses]
@@ -406,6 +409,8 @@ class KerykeionPointModel(SubscriptableBaseModel):
     point_type: PointType
     house: Optional[Houses] = None
     retrograde: Optional[bool] = None
+    is_vakra: Optional[bool] = Field(default=None, description="Vedic retrograde (Vakra) flag.")
+    is_combust: Optional[bool] = Field(default=None, description="Vedic combustion (Asta) flag.")
     speed: Optional[float] = Field(
         default=None,
         description="Daily motion in degrees/day. Negative = retrograde. Populated for planets, house cusps, and fixed stars.",
@@ -616,8 +621,8 @@ class DashaPeriodModel(SubscriptableBaseModel):
 
     lord: NakshatraLord = Field(description="The planetary lord of this period.")
     level: DashaLevel = Field(description="The level of the dasha (Mahadasha, Antardasha, etc.).")
-    start_date: str = Field(description="Start date of the period in ISO UTC format.")
-    end_date: str = Field(description="End date of the period in ISO UTC format.")
+    start_date: datetime = Field(description="Start date of the period.")
+    end_date: datetime = Field(description="End date of the period.")
     duration_days: float = Field(description="Total duration of the period in days.")
 
 

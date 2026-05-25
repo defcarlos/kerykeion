@@ -1631,6 +1631,7 @@ class AstrologicalSubjectFactory:
                 point_type=point_type,
                 speed=planet_calc[3],
                 declination=declination,
+                is_vakra=planet_calc[3] < 0,
             )
 
             # Calculate house position
@@ -2139,6 +2140,20 @@ class AstrologicalSubjectFactory:
                     active_points.remove("Vertex")
                 if "Anti_Vertex" in active_points:
                     active_points.remove("Anti_Vertex")
+
+        # =============================================================================
+        # VEDIC CONDITIONS (Combustion)
+        # =============================================================================
+        if "sun" in data:
+            sun_pos = data["sun"].abs_pos
+            for planet_name in ["moon", "mercury", "venus", "mars", "jupiter", "saturn"]:
+                if planet_name in data:
+                    planet_data = data[planet_name]
+                    # Vedic Combustion (Asta) threshold is typically ~8 degrees
+                    diff = abs(planet_data.abs_pos - sun_pos)
+                    if diff > 180:
+                        diff = 360 - diff
+                    planet_data.is_combust = diff <= 8.0
 
         # Store only the planets that were actually calculated
         all_calculated_points = calculated_planets.copy()

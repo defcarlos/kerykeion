@@ -53,8 +53,8 @@ class VimsottariDashaFactory:
         if not self.subject.moon:
             raise ValueError("Vimsottari Dasha requires Moon position data.")
 
-    def _jd_to_iso(self, jd: float) -> str:
-        """Helper to convert Julian Day to ISO UTC string."""
+    def _jd_to_datetime(self, jd: float) -> datetime:
+        """Helper to convert Julian Day to UTC datetime."""
         y, m, d, h = swe.revjul(jd)
         hours = int(h)
         minutes = int((h - hours) * 60)
@@ -62,8 +62,7 @@ class VimsottariDashaFactory:
         micro = int((((h - hours) * 60 - minutes) * 60 - seconds) * 1000000)
         # Avoid microsecond overflow/underflow if any
         micro = min(max(0, micro), 999999)
-        dt = datetime(y, m, d, hours, minutes, seconds, micro, tzinfo=timezone.utc)
-        return dt.isoformat()
+        return datetime(y, m, d, hours, minutes, seconds, micro, tzinfo=timezone.utc)
 
     def calculate(self) -> VimsottariDashaModel:
         """
@@ -138,8 +137,8 @@ class VimsottariDashaFactory:
                     pratyantardashas.append(PratyantardashaModel(
                         lord=p_lord_name,
                         level="Pratyantardasha",
-                        start_date=self._jd_to_iso(p_start_jd),
-                        end_date=self._jd_to_iso(p_end_jd),
+                        start_date=self._jd_to_datetime(p_start_jd),
+                        end_date=self._jd_to_datetime(p_end_jd),
                         duration_days=p_duration_days
                     ))
                     
@@ -148,8 +147,8 @@ class VimsottariDashaFactory:
                 antardashas.append(AntardashaModel(
                     lord=a_lord_name,
                     level="Antardasha",
-                    start_date=self._jd_to_iso(a_start_jd),
-                    end_date=self._jd_to_iso(a_end_jd),
+                    start_date=self._jd_to_datetime(a_start_jd),
+                    end_date=self._jd_to_datetime(a_end_jd),
                     duration_days=a_duration_days,
                     pratyantardashas=pratyantardashas
                 ))
@@ -159,8 +158,8 @@ class VimsottariDashaFactory:
             mahadashas.append(MahadashaModel(
                 lord=lord_name,
                 level="Mahadasha",
-                start_date=self._jd_to_iso(m_start_jd),
-                end_date=self._jd_to_iso(m_end_jd),
+                start_date=self._jd_to_datetime(m_start_jd),
+                end_date=self._jd_to_datetime(m_end_jd),
                 duration_days=m_duration_days,
                 antardashas=antardashas
             ))
